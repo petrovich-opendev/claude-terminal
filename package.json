@@ -1,0 +1,58 @@
+{
+  "name": "claude-terminal",
+  "version": "0.1.0",
+  "description": "AI-native macOS terminal for Claude Code CLI",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && electron-builder",
+    "build:renderer": "vite build",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\""
+  },
+  "dependencies": {
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-search": "^0.15.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/addon-serialize": "^0.13.0",
+    "keytar": "^7.9.0",
+    "node-pty": "^1.0.0",
+    "ssh2": "^1.16.0",
+    "zustand": "^4.5.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/ssh2": "^1.15.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "concurrently": "^9.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0",
+    "vite-plugin-electron": "^0.28.0",
+    "vite-plugin-electron-renderer": "^0.14.0",
+    "vitest": "^2.0.0",
+    "wait-on": "^8.0.0"
+  },
+  "build": {
+    "appId": "pro.agentdata.claude-terminal",
+    "productName": "Claude Terminal",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [{"target": "dmg", "arch": ["universal"]}],
+      "minimumSystemVersion": "13.0"
+    },
+    "files": ["dist/**/*", "dist-electron/**/*"],
+    "directories": {"buildResources": "resources"}
+  }
+}
