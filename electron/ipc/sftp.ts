@@ -20,7 +20,7 @@ export function registerSftpHandlers(ipcMain: IpcMain, win: BrowserWindow): void
         for (const lp of localPaths) {
           const name=path.basename(lp), rp=path.posix.join(remoteDir,name), total=fs.statSync(lp).size; let up=0
           const rs=fs.createReadStream(lp), ws=sftp.createWriteStream(rp)
-          rs.on('data',(chunk:Buffer)=>{ up+=chunk.length; if(!win.isDestroyed()) win.webContents.send('sftp:progress',{file:name,percent:total>0?Math.round(up/total*100):0}) })
+          rs.on('data',(chunk:string|Buffer)=>{ const len=Buffer.isBuffer(chunk)?chunk.length:Buffer.byteLength(chunk); up+=len; if(!win.isDestroyed()) win.webContents.send('sftp:progress',{file:name,percent:total>0?Math.round(up/total*100):0}) })
           ws.on('close',()=>{ done++; if(done===localPaths.length){conn.end();resolve({ok:true,count:done})} })
           ws.on('error',(e:Error)=>{conn.end();reject(e)})
           rs.pipe(ws)
