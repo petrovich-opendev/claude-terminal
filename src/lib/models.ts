@@ -79,7 +79,7 @@ export interface AppConfig {
   defaultMode: ClaudeModeId;
   costAlertThresholdUSD: number;
   contextAlertPercent: number;
-  obsidianPort: number;   // default 22360
+  obsidianPort: number;   // default 27123 (Obsidian Local REST API plugin default)
   editor: {
     readOnlyDefault: boolean;
     wordWrap: boolean;

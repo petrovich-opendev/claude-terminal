@@ -8,6 +8,8 @@ interface Props {
   onClose: () => void
 }
 
+/** Track whether editor content has been modified since last save/load */
+
 type AskClaudeAction = 'explain' | 'refactor' | 'tests' | 'fixbugs'
 
 const ASK_CLAUDE_ACTIONS: { value: AskClaudeAction; label: string }[] = [
@@ -20,14 +22,21 @@ const ASK_CLAUDE_ACTIONS: { value: AskClaudeAction; label: string }[] = [
 function detectLanguage(filePath: string): string {
   const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
   switch (ext) {
-    case 'ts':  return 'typescript'
-    case 'tsx': return 'typescript'
-    case 'py':  return 'python'
+    case 'ts':   return 'typescript'
+    case 'tsx':  return 'typescript'
+    case 'js':   return 'javascript'
+    case 'jsx':  return 'javascript'
+    case 'py':   return 'python'
+    case 'rs':   return 'rust'
     case 'json': return 'json'
-    case 'md':  return 'markdown'
-    case 'css': return 'css'
-    case 'sh':  return 'shell'
-    default:    return 'plaintext'
+    case 'md':   return 'markdown'
+    case 'css':  return 'css'
+    case 'html': return 'html'
+    case 'yml':  case 'yaml': return 'yaml'
+    case 'toml': return 'ini'
+    case 'sh':   case 'bash': case 'zsh': return 'shell'
+    case 'sql':  return 'sql'
+    default:     return 'plaintext'
   }
 }
 
@@ -37,6 +46,7 @@ function basename(filePath: string): string {
 
 export default function FileEditor({ filePath, onClose }: Props) {
   const [content, setContent]     = useState<string>('')
+  const [savedContent, setSavedContent] = useState<string>('')
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState<string | null>(null)
   const [readOnly, setReadOnly]   = useState(true)
@@ -44,12 +54,23 @@ export default function FileEditor({ filePath, onClose }: Props) {
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null)
   const ptyId = useActivePtyId()
 
+  const isDirty = !readOnly && content !== savedContent
+
+  /** Close with unsaved-changes guard */
+  const handleClose = useCallback(() => {
+    if (isDirty) {
+      if (!window.confirm('You have unsaved changes. Close anyway?')) return
+    }
+    onClose()
+  }, [isDirty, onClose])
+
   useEffect(() => {
     setLoading(true)
     setError(null)
     window.electronAPI.fsRead(filePath)
       .then((data: string) => {
         setContent(data)
+        setSavedContent(data)
         setLoading(false)
       })
       .catch((err: Error) => {
@@ -63,6 +84,7 @@ export default function FileEditor({ filePath, onClose }: Props) {
     const value = editorRef.current?.getValue() ?? content
     try {
       await window.electronAPI.fsWrite(filePath, value)
+      setSavedContent(value)
       setSaved(true)
       setTimeout(() => setSaved(false), 1500)
     } catch (err: unknown) {
@@ -124,7 +146,7 @@ export default function FileEditor({ filePath, onClose }: Props) {
       }}>
         <span style={{ flex: 1, fontSize: 13, color: '#ccc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               title={filePath}>
-          {name}
+          {isDirty ? '\u25cf ' : ''}{name}
         </span>
 
         {/* Read/Write toggle */}
@@ -174,7 +196,7 @@ export default function FileEditor({ filePath, onClose }: Props) {
 
         {/* Close */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           title="Close"
           style={{
             background: 'none',
