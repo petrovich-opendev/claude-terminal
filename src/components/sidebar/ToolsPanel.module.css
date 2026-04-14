@@ -1,0 +1,209 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  background: #0f0f18;
+  color: #c9cfe0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a42 transparent;
+}
+
+.panel::-webkit-scrollbar { width: 4px; }
+.panel::-webkit-scrollbar-thumb { background: #2a2a42; border-radius: 2px; }
+
+.section {
+  border-bottom: 1px solid #1e1e2e;
+  padding: 6px 0;
+}
+
+/* Tool rows */
+.toolRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  transition: background 0.1s;
+}
+
+.toolRow:hover {
+  background: #14142a;
+}
+
+.toolIcon {
+  width: 20px;
+  text-align: center;
+  color: #7080b0;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.toolInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.toolName {
+  font-weight: 700;
+  color: #dde2f4;
+  flex-shrink: 0;
+}
+
+.toolDesc {
+  color: #5a6080;
+  font-size: 10px;
+  flex-basis: 100%;
+  margin-top: 1px;
+}
+
+/* Risk badges */
+.risk {
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.risk_none { background: #2a2a42; color: #7080a0; }
+.risk_low  { background: #162038; color: #5b9ef4; border: 1px solid #5b9ef430; }
+.risk_med  { background: #2a1e0e; color: #f59e0b; border: 1px solid #f59e0b30; }
+.risk_high { background: #2a0e0e; color: #ef4444; border: 1px solid #ef444430; }
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  display: inline-flex;
+  width: 32px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: #2a2a42;
+  border-radius: 9px;
+  transition: background 0.2s;
+}
+
+.slider::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  background: #c9cfe0;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle input:checked + .slider {
+  background: #5b5ef4;
+}
+
+.toggle input:checked + .slider::before {
+  transform: translateX(14px);
+}
+
+/* Extended thinking */
+.thinkingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.thinkingLabel {
+  color: #a78bfa;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.budgetRow {
+  padding: 0 10px 8px;
+}
+
+.budgetLabel {
+  display: block;
+  color: #7080b0;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.budgetSlider {
+  width: 100%;
+  accent-color: #a78bfa;
+  cursor: pointer;
+}
+
+/* CLI command output */
+.cmdSection {
+  padding: 8px 10px 10px;
+  flex-shrink: 0;
+}
+
+.cmdHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.cmdLabel {
+  color: #6070a0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.copyBtn {
+  background: #1e1e36;
+  border: 1px solid #2a2a48;
+  border-radius: 3px;
+  color: #7080b0;
+  cursor: pointer;
+  padding: 2px 7px;
+  font-size: 13px;
+  transition: background 0.1s, color 0.1s;
+}
+
+.copyBtn:hover {
+  background: #28283e;
+  color: #c0c8e8;
+  border-color: #5b5ef455;
+}
+
+.cmdTextarea {
+  width: 100%;
+  background: #0a0a14;
+  border: 1px solid #2a2a42;
+  border-radius: 4px;
+  color: #7ef4a0;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 6px 8px;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+  line-height: 1.5;
+  word-break: break-all;
+}

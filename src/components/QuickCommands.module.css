@@ -1,0 +1,74 @@
+.bar {
+  height: var(--quickcmds-height);
+  background: var(--p2);
+  border-top: 1px solid var(--b1);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  overflow-x: auto;
+  padding: 0 8px;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a42 transparent;
+}
+
+.inner::-webkit-scrollbar { height: 3px; }
+.inner::-webkit-scrollbar-thumb { background: #2a2a42; border-radius: 2px; }
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.catLabel {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  padding-right: 2px;
+  opacity: 0.85;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #1a1a30;
+  border: 1px solid #2a2a48;
+  border-radius: 12px;
+  color: #8090c0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  padding: 3px 10px 3px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.chip:hover:not(:disabled) {
+  background: #1e1e40;
+  color: #c0c8e8;
+  border-color: #5b5ef455;
+}
+
+.chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chipIcon {
+  font-size: 12px;
+  opacity: 0.8;
+  line-height: 1;
+}

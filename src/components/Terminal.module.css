@@ -1,0 +1,4 @@
+.wrap{flex:1;position:relative;overflow:hidden;background:#08080a;}
+.term{width:100%;height:100%;padding:8px;}
+.overlay{position:absolute;inset:0;background:rgba(245,158,11,.12);border:2px dashed var(--amber);display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:10;}
+.overlayMsg{color:var(--amber);font-size:16px;font-family:var(--mono);font-weight:600;}

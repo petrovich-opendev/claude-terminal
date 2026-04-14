@@ -25,7 +25,9 @@
     "ssh2": "^1.16.0",
     "zustand": "^4.5.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "@monaco-editor/react": "^4.6.0",
+    "monaco-editor": "^0.52.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -44,9 +46,18 @@
     "vitest": "^2.0.0",
     "wait-on": "^8.0.0"
   },
+  "author": "Ruslan Karimov <rkarimov.mail@gmail.com> (https://agentdata.pro)",
+  "homepage": "https://agentdata.pro",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/petrovich-opendev/claude-terminal.git"
+  },
   "build": {
     "appId": "pro.agentdata.claude-terminal",
     "productName": "Claude Terminal",
+    "copyright": "Copyright (c) 2026 AGENTDATA.PRO / Ruslan Karimov",
+    "icon": "resources/icon.png",
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": [{"target": "dmg", "arch": ["universal"]}],

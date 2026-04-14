@@ -1,0 +1,389 @@
+/* SSHPanel — dark industrial styling */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0f0f18;
+  color: #c9cfe0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  overflow: hidden;
+}
+
+/* ── Search ── */
+.searchRow {
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid #1e1e2e;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  width: 100%;
+  background: #1a1a2e;
+  border: 1px solid #2a2a42;
+  border-radius: 4px;
+  color: #c9cfe0;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.searchInput:focus {
+  border-color: #5b5ef4;
+}
+
+.searchInput::placeholder {
+  color: #4a4a6a;
+}
+
+/* ── Session List ── */
+.list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a42 transparent;
+}
+
+.list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: #2a2a42;
+  border-radius: 2px;
+}
+
+.empty {
+  color: #4a4a6a;
+  padding: 16px 12px;
+  font-style: italic;
+}
+
+/* ── Group ── */
+.group {
+  border-bottom: 1px solid #15152a;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  color: #7e82a8;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.groupHeader:hover {
+  background: #14142a;
+}
+
+.chevron {
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+
+.chevronCollapsed {
+  transform: rotate(-90deg);
+}
+
+.groupName {
+  flex: 1;
+}
+
+.groupCount {
+  background: #1e1e36;
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 10px;
+  color: #5b5ef4;
+}
+
+.groupItems {
+  padding: 2px 0;
+}
+
+/* ── Session Row ── */
+.sessionRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 10px 7px 14px;
+  cursor: default;
+  position: relative;
+  transition: background 0.1s;
+}
+
+.sessionRow:hover {
+  background: #14142a;
+}
+
+.sessionInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sessionName {
+  font-weight: 700;
+  color: #dde2f4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sessionHost {
+  color: #5a6080;
+  font-size: 11px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.tag {
+  background: #1c1c36;
+  border: 1px solid #2a2a50;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 10px;
+  color: #7080b0;
+}
+
+/* ── Status Dot ── */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.dot_idle {
+  background: #32324a;
+  border: 1px solid #44445a;
+}
+
+.dot_connected {
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e99;
+}
+
+.dot_connecting {
+  background: #f59e0b;
+  animation: pulse 1s infinite;
+}
+
+.dot_error {
+  background: #ef4444;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Hover Actions ── */
+.actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  background: #1e1e36;
+  border: 1px solid #2a2a48;
+  border-radius: 3px;
+  color: #7080b0;
+  font-size: 12px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.1s, color 0.1s;
+}
+
+.actionConnect:hover {
+  background: #1a3a2a;
+  color: #22c55e;
+  border-color: #22c55e55;
+}
+
+.actionEdit:hover {
+  background: #1a2a40;
+  color: #5b9ef4;
+  border-color: #5b9ef455;
+}
+
+.actionDelete:hover {
+  background: #3a1a1a;
+  color: #ef4444;
+  border-color: #ef444455;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid #1e1e2e;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.toolBtn {
+  flex: 1;
+  background: #1a1a30;
+  border: 1px solid #2a2a48;
+  border-radius: 4px;
+  color: #8090c0;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+
+.toolBtn:hover {
+  background: #1e1e40;
+  color: #c0c8e8;
+  border-color: #5b5ef455;
+}
+
+/* ── Add/Edit Form ── */
+.form {
+  border-top: 1px solid #1e1e2e;
+  padding: 10px;
+  background: #0d0d1c;
+  overflow-y: auto;
+  max-height: 60%;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a42 transparent;
+}
+
+.formTitle {
+  font-weight: 700;
+  color: #5b5ef4;
+  margin-bottom: 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.fieldLabel {
+  display: block;
+  color: #6070a0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+  margin-top: 8px;
+}
+
+.fieldInput,
+.fieldSelect {
+  width: 100%;
+  background: #1a1a2e;
+  border: 1px solid #2a2a42;
+  border-radius: 4px;
+  color: #c9cfe0;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+  appearance: none;
+}
+
+.fieldInput:focus,
+.fieldSelect:focus {
+  border-color: #5b5ef4;
+}
+
+.fieldSelect {
+  cursor: pointer;
+}
+
+.fieldRow {
+  display: flex;
+  gap: 8px;
+}
+
+.fieldHalf {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldHalf .fieldLabel {
+  margin-top: 8px;
+}
+
+.formActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.saveBtn {
+  flex: 1;
+  background: #5b5ef4;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 0;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.saveBtn:hover {
+  background: #7b7ef8;
+}
+
+.cancelBtn {
+  flex: 1;
+  background: #1e1e36;
+  border: 1px solid #2a2a48;
+  border-radius: 4px;
+  color: #8090c0;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 7px 0;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.cancelBtn:hover {
+  background: #28283e;
+  color: #c0c8e8;
+}

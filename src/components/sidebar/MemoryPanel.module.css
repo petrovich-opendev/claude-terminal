@@ -1,0 +1,174 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0f0f18;
+  color: #c9cfe0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+}
+
+.files {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a42 transparent;
+}
+
+.files::-webkit-scrollbar { width: 4px; }
+.files::-webkit-scrollbar-thumb { background: #2a2a42; border-radius: 2px; }
+
+.fileRow {
+  padding: 8px 10px;
+  border-bottom: 1px solid #15152a;
+  transition: background 0.1s;
+}
+
+.fileRow:hover {
+  background: #14142a;
+}
+
+.missing {
+  opacity: 0.45;
+}
+
+.fileHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  flex-wrap: wrap;
+}
+
+.scopeBadge {
+  border-radius: 3px;
+  border: 1px solid;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.fileName {
+  font-weight: 700;
+  color: #dde2f4;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileSize {
+  color: #5a6080;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.editBtn {
+  background: #1e1e36;
+  border: 1px solid #2a2a48;
+  border-radius: 3px;
+  color: #7080b0;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 12px;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+}
+
+.editBtn:hover {
+  background: #1a2a40;
+  color: #5b9ef4;
+  border-color: #5b9ef455;
+}
+
+.preview {
+  color: #5a6080;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.absent {
+  color: #3a3a5a;
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* Context bar */
+.contextSection {
+  border-top: 1px solid #1e1e2e;
+  padding: 10px;
+  flex-shrink: 0;
+}
+
+.contextHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.contextLabel {
+  color: #6070a0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex: 1;
+}
+
+.contextPct {
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.contextTokens {
+  color: #5a6080;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.contextBar {
+  height: 4px;
+  background: #1e1e36;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.contextFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s, background 0.3s;
+  min-width: 0;
+}
+
+.compactBtn {
+  width: 100%;
+  background: #1a1a30;
+  border: 1px solid #2a2a48;
+  border-radius: 4px;
+  color: #8090c0;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.compactBtn:hover:not(:disabled) {
+  background: #1e1e40;
+  color: #c0c8e8;
+  border-color: #5b5ef455;
+}
+
+.compactBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
