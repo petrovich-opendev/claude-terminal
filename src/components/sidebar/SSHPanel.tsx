@@ -41,6 +41,8 @@ export default function SSHPanel() {
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [editId, setEditId] = useState<string | null>(null) // null = closed, '' = new
   const [form, setForm] = useState<FormState>(toFormState())
+  const [formError, setFormError] = useState<string | null>(null)
+  const [importMsg, setImportMsg] = useState<string | null>(null)
 
   // Load sessions from IPC on mount — merge with store
   useEffect(() => {
@@ -83,15 +85,18 @@ export default function SSHPanel() {
   function openNew() {
     setEditId('')
     setForm(toFormState())
+    setFormError(null)
   }
 
   function openEdit(s: SSHSession) {
     setEditId(s.id)
     setForm(toFormState(s))
+    setFormError(null)
   }
 
   function closeForm() {
     setEditId(null)
+    setFormError(null)
   }
 
   function handleFormChange(field: keyof FormState, value: string | number) {
@@ -99,32 +104,41 @@ export default function SSHPanel() {
   }
 
   async function handleSave() {
+    setFormError(null)
+    if (!form.name.trim()) { setFormError('Name is required'); return }
+    if (!form.host.trim()) { setFormError('Host is required'); return }
+    if (!form.user.trim()) { setFormError('User is required'); return }
+    const port = Number(form.port)
+    if (!port || port < 1 || port > 65535) { setFormError('Port must be 1–65535'); return }
+
     const tags = form.tagsRaw.split(',').map((t) => t.trim()).filter(Boolean)
     const isNew = editId === ''
     const id = isNew ? genId() : editId!
     const session: SSHSession = {
       id,
-      name: form.name,
-      group: form.group || 'Default',
-      host: form.host,
-      port: Number(form.port) || 22,
-      user: form.user,
+      name: form.name.trim(),
+      group: form.group.trim() || 'Default',
+      host: form.host.trim(),
+      port,
+      user: form.user.trim(),
       authType: form.authType,
       keyPath: form.authType === 'key' ? form.keyPath : undefined,
       tags,
       note: form.note,
       status: 'idle',
     }
-    await window.electronAPI.sshSave(session).catch(() => {})
-    if (isNew) {
-      addSession(session)
-    } else {
-      updateSession(id, session)
+    try {
+      await window.electronAPI.sshSave(session)
+      if (isNew) addSession(session)
+      else updateSession(id, session)
+      closeForm()
+    } catch {
+      setFormError('Failed to save session. Please try again.')
     }
-    closeForm()
   }
 
   async function handleDelete(s: SSHSession) {
+    if (!window.confirm(`Delete session "${s.name}"?`)) return
     await window.electronAPI.sshDelete(s.id).catch(() => {})
     removeSession(s.id)
   }
@@ -142,10 +156,14 @@ export default function SSHPanel() {
   async function handleImport() {
     const list = await window.electronAPI.sshImportConfig().catch(() => [] as unknown[])
     const remote = list as SSHSession[]
+    let imported = 0
     remote.forEach((s) => {
       const exists = sessions.find((x) => x.id === s.id || (x.host === s.host && x.user === s.user))
-      if (!exists) addSession({ ...s, status: 'idle' })
+      if (!exists) { addSession({ ...s, status: 'idle' }); imported++ }
     })
+    const msg = imported > 0 ? `Imported ${imported} session${imported > 1 ? 's' : ''}` : 'No new sessions found'
+    setImportMsg(msg)
+    setTimeout(() => setImportMsg(null), 3000)
   }
 
   const isEditing = editId !== null
@@ -230,6 +248,9 @@ export default function SSHPanel() {
         <button className={styles.toolBtn} onClick={openNew}>+ Add Session</button>
         <button className={styles.toolBtn} onClick={handleImport}>↓ Import ~/.ssh/config</button>
       </div>
+      {importMsg && (
+        <div className={styles.importMsg}>{importMsg}</div>
+      )}
 
       {/* Add/Edit Form */}
       {isEditing && (
@@ -275,6 +296,10 @@ export default function SSHPanel() {
 
           <label className={styles.fieldLabel}>Note</label>
           <input className={styles.fieldInput} value={form.note} onChange={(e) => handleFormChange('note', e.target.value)} placeholder="Optional description" />
+
+          {formError && (
+            <div className={styles.formError}>{formError}</div>
+          )}
 
           <div className={styles.formActions}>
             <button className={styles.saveBtn} onClick={handleSave}>Save</button>

@@ -54,11 +54,19 @@ function mapItems(
 export default function FilesPanel({ onFileSelect }: Props) {
   const { cwd, ptyId } = useTerminalStore()
   const [nodes, setNodes] = useState<FsNode[]>([])
+  const [loading, setLoading] = useState(true)
+  const [rootError, setRootError] = useState<string | null>(null)
 
   useEffect(() => {
+    setLoading(true)
+    setRootError(null)
     window.electronAPI.fsList(cwd).then((items) => {
       setNodes(mapItems(items))
-    }).catch(() => {})
+      setLoading(false)
+    }).catch((e: Error) => {
+      setRootError(e?.message ?? 'Cannot read directory')
+      setLoading(false)
+    })
   }, [cwd])
 
   const toggleDir = useCallback(async (node: FsNode) => {
@@ -71,7 +79,14 @@ export default function FilesPanel({ onFileSelect }: Props) {
       const items = await window.electronAPI.fsList(node.path)
       const children = mapItems(items)
       setNodes((prev) => updateNode(prev, node.path, { expanded: true, children }))
-    } catch {}
+    } catch(e) {
+      // Mark node with error indicator
+      setNodes((prev) => updateNode(prev, node.path, { expanded: false, children: [{
+        name: `⚠ ${(e as Error).message ?? 'Permission denied'}`,
+        path: node.path + '/__error__',
+        isDirectory: false,
+      }]}))
+    }
   }, [])
 
   const explainFile = useCallback((node: FsNode) => {
@@ -81,13 +96,20 @@ export default function FilesPanel({ onFileSelect }: Props) {
 
   return (
     <div className={styles.panel}>
-      <NodeList
-        nodes={nodes}
-        depth={0}
-        onFileSelect={onFileSelect}
-        onToggleDir={toggleDir}
-        onExplain={explainFile}
-      />
+      {loading && <div className={styles.loading}>Loading…</div>}
+      {rootError && <div className={styles.rootError}>⚠ {rootError}</div>}
+      {!loading && !rootError && nodes.length === 0 && (
+        <div className={styles.empty}>Directory is empty</div>
+      )}
+      {!loading && !rootError && (
+        <NodeList
+          nodes={nodes}
+          depth={0}
+          onFileSelect={onFileSelect}
+          onToggleDir={toggleDir}
+          onExplain={explainFile}
+        />
+      )}
     </div>
   )
 }

@@ -2,3 +2,5 @@
 .term{width:100%;height:100%;padding:8px;}
 .overlay{position:absolute;inset:0;background:rgba(245,158,11,.12);border:2px dashed var(--amber);display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:10;}
 .overlayMsg{color:var(--amber);font-size:16px;font-family:var(--mono);font-weight:600;}
+
+.uploadError{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:#3a1a1a;border:1px solid #ef4444;color:#ef4444;padding:6px 14px;border-radius:6px;font-size:12px;z-index:20;white-space:nowrap;}

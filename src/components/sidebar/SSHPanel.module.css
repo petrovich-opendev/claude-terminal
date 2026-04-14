@@ -387,3 +387,17 @@
   background: #28283e;
   color: #c0c8e8;
 }
+
+.formError {
+  color: #ef4444;
+  font-size: 11px;
+  padding: 4px 0;
+  margin-bottom: 4px;
+}
+
+.importMsg {
+  font-size: 11px;
+  color: #22c55e;
+  padding: 4px 12px;
+  text-align: center;
+}

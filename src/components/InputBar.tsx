@@ -24,7 +24,7 @@ export default function InputBar(){
       {up&&<div className={styles.prog}><span className={styles.pf}>{up.file}</span><div className={styles.pt}><div className={styles.pfi} style={{width:`${up.percent}%`}}/></div><span className={styles.pp}>{up.percent}%</span></div>}
       <div className={styles.row}>
         <span className={styles.prompt}>❯</span>
-        <input className={styles.input} value={val} onChange={e=>setVal(e.target.value)} onKeyDown={onKey} placeholder={status==='running'?'Type command...':'No active session'} disabled={!ptyId||status!=='running'} spellCheck={false} autoComplete='off'/>
+        <input className={styles.input} value={val} onChange={e=>{setVal(e.target.value);if(idx>=0)setIdx(-1)}} onKeyDown={onKey} placeholder={status==='running'?'Type command...':'No active session'} disabled={!ptyId||status!=='running'} spellCheck={false} autoComplete='off'/>
         <button className={styles.run} onClick={submit} disabled={!val.trim()||!ptyId}>RUN</button>
       </div>
       {idx>=0&&<div className={styles.hint}>history [{idx+1}/{hist.length}] ↑↓ to navigate</div>}

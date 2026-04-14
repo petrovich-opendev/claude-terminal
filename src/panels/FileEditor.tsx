@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Editor from '@monaco-editor/react'
 import type * as Monaco from 'monaco-editor'
+import { useTerminalStore } from '@/store/terminal'
 
 interface Props {
   filePath: string
@@ -41,6 +42,7 @@ export default function FileEditor({ filePath, onClose }: Props) {
   const [readOnly, setReadOnly]   = useState(true)
   const [saved, setSaved]         = useState(false)
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null)
+  const ptyId = useTerminalStore(s => s.ptyId)
 
   useEffect(() => {
     setLoading(true)
@@ -81,6 +83,7 @@ export default function FileEditor({ filePath, onClose }: Props) {
   }, [handleSave])
 
   const handleAskClaude = (action: AskClaudeAction) => {
+    if (!ptyId) return
     const name = basename(filePath)
     const commands: Record<AskClaudeAction, string> = {
       explain:  `claude "Explain the file ${filePath}"\r`,
@@ -88,7 +91,7 @@ export default function FileEditor({ filePath, onClose }: Props) {
       tests:    `claude "Write tests for ${name}"\r`,
       fixbugs:  `claude "Find and fix bugs in ${filePath}"\r`,
     }
-    window.electronAPI.ptyWrite(commands[action])
+    window.electronAPI.ptyWrite(ptyId, commands[action]).catch(() => {})
   }
 
   const language = detectLanguage(filePath)
@@ -146,14 +149,17 @@ export default function FileEditor({ filePath, onClose }: Props) {
         <select
           onChange={e => { if (e.target.value) { handleAskClaude(e.target.value as AskClaudeAction); e.target.value = '' } }}
           defaultValue=""
+          disabled={!ptyId}
+          title={ptyId ? 'Ask Claude about this file' : 'No active terminal session'}
           style={{
             padding: '2px 6px',
             fontSize: 11,
             borderRadius: 4,
             border: '1px solid #555',
             background: '#2a2a2a',
-            color: '#f0c040',
-            cursor: 'pointer',
+            color: ptyId ? '#f0c040' : '#555',
+            cursor: ptyId ? 'pointer' : 'not-allowed',
+            opacity: ptyId ? 1 : 0.5,
           }}
         >
           <option value="" disabled>Ask Claude…</option>

@@ -13,6 +13,7 @@ export default function Terminal() {
   const fitRef = useRef<FitAddon|null>(null)
   const ptyIdRef = useRef<string|null>(null)
   const [isDragOver,setIsDragOver] = useState(false)
+  const [uploadError,setUploadError] = useState<string|null>(null)
   const setPtyId = useTerminalStore(s=>s.setPtyId)
   const setStatus = useTerminalStore(s=>s.setStatus)
   const setUploadProgress = useTerminalStore(s=>s.setUploadProgress)
@@ -34,35 +35,56 @@ export default function Terminal() {
     xtermRef.current=term; fitRef.current=fit
     const spawnPty = async()=>{
       const {cols,rows}=term
-      const r=await window.electronAPI.ptyCreate({cols,rows,cwd:process.env.HOME??'/',cmd:process.env.SHELL??'/bin/zsh',args:[]})
-      ptyIdRef.current=r.id; setPtyId(r.id); setStatus('running')
-      const offData=window.electronAPI.onPtyData(r.id,d=>term.write(d))
-      const offExit=window.electronAPI.onPtyExit(r.id,()=>{setStatus('exited');term.write('\r\n[Process exited]\r\n')})
-      term.onData(d=>{ if(ptyIdRef.current) window.electronAPI.ptyWrite(ptyIdRef.current,d) })
-      return ()=>{offData();offExit()}
+      try {
+        const r=await window.electronAPI.ptyCreate({
+          cols,rows,
+          cwd:process.env.HOME??process.env.USERPROFILE??'/',
+          cmd:process.env.SHELL??'/bin/zsh',
+          args:[]
+        })
+        ptyIdRef.current=r.id; setPtyId(r.id); setStatus('running')
+        const offData=window.electronAPI.onPtyData(r.id,d=>term.write(d))
+        const offExit=window.electronAPI.onPtyExit(r.id,()=>{setStatus('exited');term.write('\r\n[Process exited]\r\n')})
+        term.onData(d=>{ if(ptyIdRef.current) window.electronAPI.ptyWrite(ptyIdRef.current,d) })
+        return ()=>{offData();offExit()}
+      } catch(e) {
+        setStatus('exited')
+        term.write(`\r\n\x1b[31m[Failed to start terminal: ${(e as Error).message}]\x1b[0m\r\n`)
+        return ()=>{}
+      }
     }
     const cleanupPty=spawnPty()
     // ResizeObserver sends SIGWINCH via pty:resize
-    const ro=new ResizeObserver(()=>{ fit.fit(); if(ptyIdRef.current) window.electronAPI.ptyResize(ptyIdRef.current,term.cols,term.rows) })
+    const ro=new ResizeObserver(()=>{
+      fit.fit()
+      if(ptyIdRef.current) window.electronAPI.ptyResize(ptyIdRef.current,term.cols,term.rows).catch(()=>{})
+    })
     ro.observe(containerRef.current)
     const offProgress=window.electronAPI.onSftpProgress(p=>setUploadProgress(p))
     return ()=>{ ro.disconnect(); offProgress(); cleanupPty.then(off=>off?.()); if(ptyIdRef.current) window.electronAPI.ptyDestroy(ptyIdRef.current); term.dispose() }
   },[])
 
   const handleDrop=async(e:React.DragEvent)=>{
-    e.preventDefault(); setIsDragOver(false)
+    e.preventDefault(); setIsDragOver(false); setUploadError(null)
     if (!activeSessionId) return
     const files=Array.from(e.dataTransfer.files).map((f:File&{path?:string})=>f.path??'').filter(Boolean)
     if (!files.length) return
     setUploadProgress({file:files[0],percent:0})
-    try { await window.electronAPI.sftpUpload(activeSessionId,files,'~') }
-    finally { setTimeout(()=>setUploadProgress(null),2000) }
+    try {
+      await window.electronAPI.sftpUpload(activeSessionId,files,'~')
+    } catch(e) {
+      setUploadError(`Upload failed: ${(e as Error).message}`)
+      setTimeout(()=>setUploadError(null),4000)
+    } finally {
+      setTimeout(()=>setUploadProgress(null),2000)
+    }
   }
 
   return (
     <div className={styles.wrap} onDragOver={e=>{e.preventDefault();setIsDragOver(true)}} onDragLeave={()=>setIsDragOver(false)} onDrop={handleDrop}>
       <div ref={containerRef} className={styles.term}/>
       {isDragOver&&activeSessionId&&<div className={styles.overlay}><span className={styles.overlayMsg}>⬆ Drop to upload via SFTP</span></div>}
+      {uploadError&&<div className={styles.uploadError}>{uploadError}</div>}
     </div>
   )
 }
