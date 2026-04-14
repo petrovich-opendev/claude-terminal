@@ -45,6 +45,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fsRead: (filePath: string) => ipcRenderer.invoke('fs:read', filePath),
   fsWrite: (filePath: string, content: string) => ipcRenderer.invoke('fs:write', filePath, content),
   // SFTP
+  sftpList: (sessionId: string, remotePath: string) =>
+    ipcRenderer.invoke('sftp:list', sessionId, remotePath),
   sftpUpload: (sessionId: string, localPaths: string[], remoteDir: string) =>
     ipcRenderer.invoke('sftp:upload', sessionId, localPaths, remoteDir),
   sftpDownload: (sessionId: string, remotePath: string, localDir: string) =>

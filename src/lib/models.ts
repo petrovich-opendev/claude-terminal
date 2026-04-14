@@ -146,6 +146,7 @@ export const IPC = {
   FS_READ: 'fs:read',
   FS_WRITE: 'fs:write',
   // SFTP
+  SFTP_LIST: 'sftp:list',
   SFTP_UPLOAD: 'sftp:upload',
   SFTP_DOWNLOAD: 'sftp:download',
   SFTP_PROGRESS: 'sftp:progress',

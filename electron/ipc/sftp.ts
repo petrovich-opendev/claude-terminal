@@ -4,16 +4,77 @@ import os from 'os'
 import fs from 'fs'
 let ssh2: { Client: new() => import('ssh2').Client } | null = null
 try { ssh2 = require('ssh2') } catch { ssh2 = null }
+let keytar: typeof import('keytar') | null = null
+try { keytar = require('keytar') } catch { keytar = null }
+const KEYCHAIN_SERVICE = 'claude-terminal'
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 function loadSessions() { const f=path.join(os.homedir(),'.config','claude-terminal','sessions.json'); return fs.existsSync(f)?JSON.parse(fs.readFileSync(f,'utf-8')):[] }
+
+async function buildConnectOpts(sess: {
+  host: string; port?: number; user: string;
+  authType: string; keyPath?: string; id: string
+}): Promise<Record<string, unknown>> {
+  const o: Record<string, unknown> = { host: sess.host, port: sess.port || 22, username: sess.user }
+  if (sess.authType === 'key' && sess.keyPath) {
+    o.privateKey = fs.readFileSync(sess.keyPath.replace(/^~/, os.homedir()))
+  } else if (sess.authType === 'password') {
+    const pw = keytar ? await keytar.getPassword(KEYCHAIN_SERVICE, sess.id) : null
+    if (!pw) throw new Error('Password not found in Keychain')
+    o.password = pw
+  } else if (sess.authType === 'keychain' && sess.keyPath) {
+    const passphrase = keytar ? await keytar.getPassword(KEYCHAIN_SERVICE, sess.id) : null
+    o.privateKey = fs.readFileSync(sess.keyPath.replace(/^~/, os.homedir()))
+    if (passphrase) o.passphrase = passphrase
+  }
+  return o
+}
+
 export function registerSftpHandlers(ipcMain: IpcMain, win: BrowserWindow): void {
+  ipcMain.handle('sftp:list', async (_e, sessionId: string, remotePath: string) => {
+    if (!ssh2) throw new Error('ssh2 not available')
+    if (!UUID_RE.test(sessionId)) throw new Error('Invalid session ID')
+    if (typeof remotePath !== 'string' || !remotePath) throw new Error('Path must be a non-empty string')
+    const sess = loadSessions().find((s: {id:string}) => s.id === sessionId)
+    if (!sess) throw new Error('Session not found')
+    const expanded = remotePath.replace(/^~($|\/)/, `/home/${sess.user}$1`)
+    const opts = await buildConnectOpts(sess)
+    const Ssh2Client = ssh2.Client
+    return new Promise<Array<{name:string;path:string;isDirectory:boolean;extension?:string}>>((resolve, reject) => {
+      const conn = new Ssh2Client()
+      conn.on('ready', () => conn.sftp((err, sftp) => {
+        if (err) { conn.end(); return reject(err) }
+        sftp.readdir(expanded, (err2, list) => {
+          conn.end()
+          if (err2) return reject(err2)
+          const IGNORE = new Set(['.git','node_modules','__pycache__','dist','dist-electron','.vite'])
+          const items = list
+            .filter(e => !IGNORE.has(e.filename) && !e.filename.startsWith('.'))
+            .map(e => {
+              const isDir = !!(e.attrs.mode && (e.attrs.mode & 0o170000) === 0o040000)
+              const ext = isDir ? undefined : path.extname(e.filename).toLowerCase() || undefined
+              return { name: e.filename, path: path.posix.join(expanded, e.filename), isDirectory: isDir, extension: ext }
+            })
+            .sort((a, b) => a.isDirectory === b.isDirectory ? a.name.localeCompare(b.name) : a.isDirectory ? -1 : 1)
+          resolve(items)
+        })
+      }))
+      conn.on('error', (e: Error) => reject(e))
+      conn.connect(opts as import('ssh2').ConnectConfig)
+    })
+  })
+
   ipcMain.handle('sftp:upload', async (_e, sessionId:string, localPaths:string[], remoteDir:string) => {
     if (!ssh2) throw new Error('ssh2 not available')
+    if (!UUID_RE.test(sessionId)) throw new Error('Invalid session ID')
     if (!Array.isArray(localPaths)||!localPaths.length) throw new Error('No files')
     if (!remoteDir.startsWith('/')) throw new Error('Remote dir must be absolute')
     const sess = loadSessions().find((s:{id:string})=>s.id===sessionId)
     if (!sess) throw new Error('Session not found')
+    const opts = await buildConnectOpts(sess)
+    const Ssh2Client = ssh2.Client
     return new Promise((resolve,reject) => {
-      const conn = new ssh2.Client()
+      const conn = new Ssh2Client()
       conn.on('ready', () => conn.sftp((err,sftp) => {
         if (err) { conn.end(); return reject(err) }
         let done=0
@@ -27,9 +88,7 @@ export function registerSftpHandlers(ipcMain: IpcMain, win: BrowserWindow): void
         }
       }))
       conn.on('error',(e:Error)=>reject(e))
-      const o: Record<string,unknown> = {host:sess.host,port:sess.port||22,username:sess.user}
-      if (sess.authType==='key'&&sess.keyPath) o.privateKey=fs.readFileSync(sess.keyPath.replace(/^~/,os.homedir()))
-      conn.connect(o as import('ssh2').ConnectConfig)
+      conn.connect(opts as import('ssh2').ConnectConfig)
     })
   })
 }

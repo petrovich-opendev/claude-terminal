@@ -21,6 +21,7 @@ declare global {
       fsList(dir:string):Promise<Array<{name:string;path:string;isDirectory:boolean;extension?:string}>>
       fsRead(p:string):Promise<string>
       fsWrite(p:string,content:string):Promise<{ok:boolean}>
+      sftpList(sessionId:string,remotePath:string):Promise<Array<{name:string;path:string;isDirectory:boolean;extension?:string}>>
       sftpUpload(sessionId:string,localPaths:string[],remoteDir:string):Promise<{ok:boolean;count:number}>
       sftpDownload(sessionId:string,remotePath:string,localDir:string):Promise<{ok:boolean}>
       onSftpProgress(cb:(p:{file:string;percent:number})=>void):()=>void

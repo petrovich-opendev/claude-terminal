@@ -80,3 +80,65 @@
 .loading{padding:12px;color:#666;font-size:12px;text-align:center;}
 .rootError{padding:10px 12px;color:#ef4444;font-size:12px;}
 .empty{padding:12px;color:#555;font-size:12px;text-align:center;}
+
+.pathBar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 6px 4px;
+  border-bottom: 1px solid #1a1a2e;
+  background: #0b0b14;
+  flex-shrink: 0;
+}
+
+.upBtn, .goBtn {
+  flex-shrink: 0;
+  padding: 2px 5px;
+  font-size: 12px;
+  border-radius: 3px;
+  border: 1px solid #2a2a3a;
+  background: transparent;
+  color: #5a6080;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: color 0.1s, border-color 0.1s;
+}
+
+.upBtn:hover, .goBtn:hover {
+  color: #c0c8e0;
+  border-color: #4a4a6a;
+}
+
+.pathInput {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 5px;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  background: #0f0f1a;
+  border: 1px solid #1e1e30;
+  border-radius: 3px;
+  color: #7080a0;
+  outline: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pathInput:focus {
+  border-color: #3a3a5a;
+  color: #c0c8e0;
+}
+
+.sshBadge {
+  flex-shrink: 0;
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #1a2030;
+  border: 1px solid #2a3858;
+  color: #5b8fc0;
+  white-space: nowrap;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
