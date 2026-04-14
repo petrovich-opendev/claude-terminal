@@ -1,8 +1,29 @@
 import type { IpcMain } from 'electron'
 import fs from 'fs'
 import path from 'path'
-const IGNORE = new Set(['.git','node_modules','__pycache__','dist','dist-electron','.vite'])
-function safe(p: string) { return path.resolve(p.replace(/^~/, process.env.HOME ?? '')) }
+import os from 'os'
+
+const IGNORE = new Set(['.git', 'node_modules', '__pycache__', 'dist', 'dist-electron', '.vite'])
+const HOME = os.homedir()
+
+/**
+ * Resolve and validate a file path.
+ * - Expands ~ to $HOME
+ * - Resolves to absolute via fs.realpathSync (canonical)
+ * - Rejects paths outside $HOME to prevent path traversal (e.g. /etc/shadow)
+ */
+function safe(p: string): string {
+  if (typeof p !== 'string' || !p.trim()) throw new Error('Path must be a non-empty string')
+  const expanded = p.replace(/^~(?=$|\/)/, HOME)
+  const resolved = path.resolve(expanded)
+  // Use canonical path to defeat symlink traversal
+  const canonical = fs.existsSync(resolved) ? fs.realpathSync(resolved) : resolved
+  if (!canonical.startsWith(HOME + '/') && canonical !== HOME) {
+    throw new Error('Access denied: path outside home directory')
+  }
+  return canonical
+}
+
 export function registerFsHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('fs:list', async (_e, dir: string) => {
     const t = safe(dir)
@@ -10,17 +31,25 @@ export function registerFsHandlers(ipcMain: IpcMain): void {
     return fs.readdirSync(t, { withFileTypes: true })
       .filter(e => !IGNORE.has(e.name) && !e.name.startsWith('.'))
       .map(e => ({ name: e.name, path: path.join(t, e.name), isDirectory: e.isDirectory(), extension: e.isFile() ? path.extname(e.name).toLowerCase() : undefined }))
-      .sort((a,b) => a.isDirectory === b.isDirectory ? a.name.localeCompare(b.name) : a.isDirectory ? -1 : 1)
+      .sort((a, b) => a.isDirectory === b.isDirectory ? a.name.localeCompare(b.name) : a.isDirectory ? -1 : 1)
   })
+
   ipcMain.handle('fs:read', async (_e, filePath: string) => {
     const t = safe(filePath)
     if (!fs.existsSync(t)) throw new Error('File not found')
-    if (fs.statSync(t).size > 5*1024*1024) throw new Error('File too large (>5MB)')
+    const stat = fs.statSync(t)
+    if (!stat.isFile()) throw new Error('Not a regular file')
+    if (stat.size > 5 * 1024 * 1024) throw new Error('File too large (>5 MB)')
     return fs.readFileSync(t, 'utf-8')
   })
+
   ipcMain.handle('fs:write', async (_e, filePath: string, content: string) => {
-    if (typeof content !== 'string') throw new Error('Content must be string')
-    fs.writeFileSync(safe(filePath), content, 'utf-8')
+    if (typeof content !== 'string') throw new Error('Content must be a string')
+    const t = safe(filePath)
+    // Ensure parent directory exists and is within HOME
+    const dir = path.dirname(t)
+    if (!dir.startsWith(HOME)) throw new Error('Access denied: path outside home directory')
+    fs.writeFileSync(t, content, 'utf-8')
     return { ok: true }
   })
 }

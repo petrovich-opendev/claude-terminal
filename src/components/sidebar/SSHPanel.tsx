@@ -148,18 +148,26 @@ export default function SSHPanel() {
 
   async function handleConnect(s: SSHSession) {
     if (!ptyId || !activeTabId) return
+    // Validate host/user to prevent shell injection — allow only safe characters
+    const SAFE_HOST = /^[a-zA-Z0-9._-]+$/
+    const SAFE_USER = /^[a-zA-Z0-9._-]+$/
+    if (!SAFE_HOST.test(s.host)) { window.alert('Invalid hostname characters'); return }
+    if (!SAFE_USER.test(s.user)) { window.alert('Invalid username characters'); return }
+    const port = s.port ?? 22
+    if (port < 1 || port > 65535) { window.alert('Invalid port number'); return }
+
     updateSession(s.id, { status: 'connecting' })
     setActive(s.id)
-    const port = s.port && s.port !== 22 ? ` -p ${s.port}` : ''
     const tabId = activeTabId
     const tmuxName = `ct-${tabId.slice(0, 8)}`
     let cmd: string
+    const portFlag = port !== 22 ? ` -p ${port}` : ''
     if (useTmux) {
       // SSH + tmux: persistent session that survives app close
-      cmd = `ssh -t${port} ${s.user}@${s.host} "tmux new-session -A -s ${tmuxName}"\n`
+      cmd = `ssh -t${portFlag} ${s.user}@${s.host} "tmux new-session -A -s ${tmuxName}"\n`
       updateTab(tabId, { title: s.name, sshSessionId: s.id, tmuxEnabled: true, tmuxSessionName: tmuxName })
     } else {
-      cmd = `ssh${port} ${s.user}@${s.host}\n`
+      cmd = `ssh${portFlag} ${s.user}@${s.host}\n`
       updateTab(tabId, { title: s.name, sshSessionId: s.id, tmuxEnabled: false })
     }
     await window.electronAPI.ptyWrite(ptyId, cmd).catch(() => {})

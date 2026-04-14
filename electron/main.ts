@@ -18,6 +18,16 @@ let mainWin: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
 
+// Global error handlers — prevent silent crashes
+process.on('uncaughtException', (err) => {
+  // eslint-disable-next-line no-console
+  console.error('[uncaughtException]', err)
+})
+process.on('unhandledRejection', (reason) => {
+  // eslint-disable-next-line no-console
+  console.error('[unhandledRejection]', reason)
+})
+
 // ── Tray icon ─────────────────────────────────────────────────────────────────
 function buildTrayIcon(): Electron.NativeImage {
   const iconPath = path.join(__dirname, '../resources/tray-icon.png')
@@ -85,9 +95,10 @@ function createWindow(): BrowserWindow {
     },
   })
 
-  // Security: block navigation and new windows
+  // Security: block navigation to external URLs — only allow dev server and local files
   win.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith('http://localhost') && !url.startsWith('file://')) event.preventDefault()
+    const allowed = url.startsWith('http://localhost:5173') || url.startsWith('file://')
+    if (!allowed) event.preventDefault()
   })
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://')) shell.openExternal(url)

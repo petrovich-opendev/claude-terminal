@@ -15,6 +15,14 @@ export function registerConfigHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('config:set', async (_e, config: unknown) => {
     ensureDir()
     if (typeof config !== 'object' || !config) throw new Error('Invalid config')
+    // Security: never allow credential-like fields in config
+    const FORBIDDEN_KEYS = ['password', 'secret', 'token', 'apiKey', 'api_key', 'privateKey']
+    const configStr = JSON.stringify(config)
+    for (const key of FORBIDDEN_KEYS) {
+      if (configStr.includes(`"${key}"`)) {
+        throw new Error(`Config must not contain credential fields (found: ${key})`)
+      }
+    }
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), { mode: 0o600 })
     return { ok: true }
   })

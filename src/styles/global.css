@@ -1,5 +1,6 @@
 @import url('theme.css');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@400;500;600&display=swap');
+/* Fonts: system-installed only. No external CDN calls (CSP: no external network). */
+/* Install JetBrains Mono / Inter locally on macOS if desired. */
 
 *, *::before, *::after {
   box-sizing: border-box;

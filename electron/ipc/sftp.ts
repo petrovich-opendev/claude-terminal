@@ -77,7 +77,15 @@ export function registerSftpHandlers(ipcMain: IpcMain, win: BrowserWindow): void
     if (!ssh2) throw new Error('ssh2 not available')
     if (!UUID_RE.test(sessionId)) throw new Error('Invalid session ID')
     if (!Array.isArray(localPaths)||!localPaths.length) throw new Error('No files')
-    if (!remoteDir.startsWith('/')) throw new Error('Remote dir must be absolute')
+    if (!remoteDir.startsWith('/') && !remoteDir.startsWith('~')) throw new Error('Remote dir must be absolute or start with ~')
+    // Validate local paths are within HOME
+    const home = os.homedir()
+    for (const lp of localPaths) {
+      const resolved = path.resolve(lp)
+      if (!resolved.startsWith(home + '/') && resolved !== home) {
+        throw new Error('Upload source must be within home directory')
+      }
+    }
     const sess = loadSessions().find((s:{id:string})=>s.id===sessionId)
     if (!sess) throw new Error('Session not found')
     const opts = await buildConnectOpts(sess)

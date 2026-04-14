@@ -8,12 +8,23 @@ function writeSessions(s: unknown[]) { const d=path.dirname(SESS_FILE()); if(!fs
 export function registerSshHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('ssh:list', async () => readSessions())
   ipcMain.handle('ssh:save', async (_e, session: unknown) => {
-    if (typeof session!=='object'||!session) throw new Error('Invalid session')
-    const s=session as {id:string;host:string;user:string}
-    if (!s.id||!s.host||!s.user) throw new Error('Missing required fields: id, host, user')
-    const all=readSessions(); const i=all.findIndex((x:{id:string})=>x.id===s.id)
-    if(i>=0) all[i]=s; else all.push(s)
-    writeSessions(all); return {ok:true}
+    if (typeof session !== 'object' || !session) throw new Error('Invalid session')
+    const s = session as { id: string; host: string; user: string; port?: number; authType?: string }
+    if (!s.id || !s.host || !s.user) throw new Error('Missing required fields: id, host, user')
+    // Validate host and user characters to prevent injection
+    const SAFE = /^[a-zA-Z0-9._-]+$/
+    if (!SAFE.test(s.host)) throw new Error('Invalid hostname characters')
+    if (!SAFE.test(s.user)) throw new Error('Invalid username characters')
+    if (s.port !== undefined && (s.port < 1 || s.port > 65535)) throw new Error('Port must be 1-65535')
+    // Ensure no credential fields leak into session file
+    const sanitized = { ...s }
+    delete (sanitized as Record<string, unknown>).password
+    delete (sanitized as Record<string, unknown>).passphrase
+    const all = readSessions()
+    const i = all.findIndex((x: { id: string }) => x.id === s.id)
+    if (i >= 0) all[i] = sanitized; else all.push(sanitized)
+    writeSessions(all)
+    return { ok: true }
   })
   ipcMain.handle('ssh:delete', async (_e, id: string) => { writeSessions(readSessions().filter((s:{id:string})=>s.id!==id)); return {ok:true} })
   ipcMain.handle('ssh:disconnect', async () => ({ok:true}))
