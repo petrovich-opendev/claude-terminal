@@ -1,0 +1,59 @@
+name: Build & Release macOS DMG
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate app icon
+        run: python3 scripts/gen_icon.py
+
+      - name: Build renderer (Vite)
+        run: npm run build:renderer
+
+      - name: Build Electron (TypeScript)
+        run: npm run build:electron
+
+      - name: Package DMG (universal)
+        run: npx electron-builder --mac dmg --universal
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.dmg
+          name: Claude Terminal ${{ github.ref_name }}
+          body: |
+            ## Claude Terminal ${{ github.ref_name }}
+
+            **AI-native macOS terminal for Claude Code CLI**
+            © 2026 AGENTDATA.PRO / Ruslan Karimov
+
+            ### Install
+            1. Download `Claude.Terminal-*.dmg`
+            2. Open DMG → drag to Applications
+            3. Launch Claude Terminal
+
+            ### Requirements
+            - macOS 13.0 Ventura or later
+            - Claude Code CLI: `npm install -g @anthropic-ai/claude-code`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

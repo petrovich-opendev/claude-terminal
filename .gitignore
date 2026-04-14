@@ -39,4 +39,3 @@ logs/
 .claude/settings.local.json
 
 # GitHub Actions (requires workflow PAT scope to push)
-.github/
