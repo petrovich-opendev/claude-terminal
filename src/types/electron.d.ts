@@ -2,9 +2,9 @@ declare global {
   interface Window {
     electronAPI: {
       ptyCreate(opts:{cols:number;rows:number;cwd:string;cmd:string;args:string[]}):Promise<{id:string}>
-      ptyWrite(id:string,data:string):Promise<void>
-      ptyResize(id:string,cols:number,rows:number):Promise<void>
-      ptyDestroy(id:string):Promise<void>
+      ptyWrite(id:string,data:string):Promise<{ok:boolean}>
+      ptyResize(id:string,cols:number,rows:number):Promise<{ok:boolean}>
+      ptyDestroy(id:string):Promise<{ok:boolean}>
       onPtyData(id:string,cb:(data:string)=>void):()=>void
       onPtyExit(id:string,cb:(code:number)=>void):()=>void
       sshConnect(id:string):Promise<{ok:boolean}>

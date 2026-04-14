@@ -10,6 +10,14 @@ export default function TabBar() {
 
   const handleClose = (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
+    const tab = tabs.find(t => t.id === id)
+    if (tab?.status === 'running') {
+      if (!window.confirm('This tab has an active session. Close it?')) return
+    }
+    // Destroy PTY process before removing tab
+    if (tab?.ptyId) {
+      window.electronAPI.ptyDestroy(tab.ptyId).catch(() => {})
+    }
     removeTab(id)
   }
 

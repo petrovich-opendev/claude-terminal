@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
+import { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
 import { useTerminalStore } from '@/store/terminal'
 import { useTabsStore } from '@/store/tabs'
@@ -19,10 +20,11 @@ export default function TerminalPane({ tabId, visible }: Props) {
   const activeSessionId   = useSessionsStore(s => s.activeSessionId)
   const { fontSize, fontFamily, lineHeight } = useConfigStore()
 
-  const containerRef = useRef<HTMLDivElement>(null)
-  const xtermRef     = useRef<XTerm | null>(null)
-  const fitRef       = useRef<FitAddon | null>(null)
-  const ptyIdRef     = useRef<string | null>(null)
+  const containerRef  = useRef<HTMLDivElement>(null)
+  const xtermRef      = useRef<XTerm | null>(null)
+  const fitRef        = useRef<FitAddon | null>(null)
+  const searchRef     = useRef<SearchAddon | null>(null)
+  const ptyIdRef      = useRef<string | null>(null)
 
   // ── Init xterm + PTY (once per tab) ───────────────────────────────────────
   useEffect(() => {
@@ -52,20 +54,25 @@ export default function TerminalPane({ tabId, visible }: Props) {
     })
 
     const fit = new FitAddon()
+    const search = new SearchAddon()
     term.loadAddon(fit)
     term.loadAddon(new WebLinksAddon())
+    term.loadAddon(search)
     term.open(containerRef.current)
     fit.fit()
-    xtermRef.current = term
-    fitRef.current   = fit
+    xtermRef.current  = term
+    fitRef.current    = fit
+    searchRef.current = search
 
     const spawnPty = async () => {
       const { cols, rows } = term
       try {
+        // NOTE: process.env is not available in renderer; pass ~ and let
+        // the main process resolve HOME and SHELL via its own env.
         const r = await window.electronAPI.ptyCreate({
           cols, rows,
-          cwd: process.env.HOME ?? process.env.USERPROFILE ?? '/',
-          cmd: process.env.SHELL ?? '/bin/zsh',
+          cwd: '~',
+          cmd: '/bin/zsh',
           args: [],
         })
         ptyIdRef.current = r.id
@@ -104,7 +111,20 @@ export default function TerminalPane({ tabId, visible }: Props) {
     })
     ro.observe(containerRef.current)
 
+    // Cmd+F search in terminal output
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === 'f') {
+        e.preventDefault()
+        const query = window.prompt('Search terminal output:')
+        if (query && searchRef.current) {
+          searchRef.current.findNext(query, { caseSensitive: false })
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+
     return () => {
+      window.removeEventListener('keydown', onKeyDown)
       ro.disconnect()
       offProgress()
       cleanupPty.then(off => off?.())

@@ -16,8 +16,8 @@ echo -e "\n${BOLD}[2/5] Generating icon...${RESET}";python3 scripts/gen_icon.py;
 echo -e "\n${BOLD}[3/5] Building renderer...${RESET}";npm run build:renderer;echo -e "${GREEN}✓${RESET}"
 echo -e "\n${BOLD}[4/5] Compiling Electron...${RESET}";npm run build:electron;echo -e "${GREEN}✓${RESET}"
 echo -e "\n${BOLD}[5/5] Packaging DMG...${RESET}";npx electron-builder --mac dmg
-DMG=$(find dist -name '*.dmg' 2>/dev/null|head -1)
-if [[ -z "$DMG" ]];then echo -e "${RED}✗ DMG not found in dist/${RESET}";exit 1;fi
+DMG=$(find release -name '*.dmg' 2>/dev/null|head -1)
+if [[ -z "$DMG" ]];then echo -e "${RED}✗ DMG not found in release/${RESET}";exit 1;fi
 echo -e "\n${GREEN}${BOLD}✓ Done! DMG: $DMG${RESET}"
 echo -e "${AMBER}Copy to Mac and double-click to install.${RESET}\n"
-open dist/ 2>/dev/null||true
+open release/ 2>/dev/null||true
