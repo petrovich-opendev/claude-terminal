@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { SSHSession } from '@/lib/models'
 import { useSessionsStore } from '@/store/sessions'
+import { useTerminalStore } from '@/store/terminal'
 import styles from './SSHPanel.module.css'
 
 function genId() {
@@ -33,7 +34,8 @@ function StatusDot({ status }: { status: SSHSession['status'] }) {
 }
 
 export default function SSHPanel() {
-  const { sessions, addSession, updateSession, removeSession } = useSessionsStore()
+  const { sessions, addSession, updateSession, removeSession, setActive } = useSessionsStore()
+  const ptyId = useTerminalStore(s => s.ptyId)
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [hoverId, setHoverId] = useState<string | null>(null)
@@ -128,9 +130,13 @@ export default function SSHPanel() {
   }
 
   async function handleConnect(s: SSHSession) {
+    if (!ptyId) return
     updateSession(s.id, { status: 'connecting' })
-    const result = await window.electronAPI.sshConnect(s.id).catch(() => ({ ok: false }))
-    updateSession(s.id, { status: result.ok ? 'connected' : 'error' })
+    setActive(s.id)
+    const port = s.port && s.port !== 22 ? ` -p ${s.port}` : ''
+    const cmd = `ssh${port} ${s.user}@${s.host}\n`
+    await window.electronAPI.ptyWrite(ptyId, cmd).catch(() => {})
+    updateSession(s.id, { status: 'connected' })
   }
 
   async function handleImport() {
