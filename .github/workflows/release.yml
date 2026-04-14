@@ -34,7 +34,7 @@ jobs:
         run: npm run build:electron
 
       - name: Fix distutils for node-gyp (Python 3.12+)
-        run: pip3 install setuptools
+        run: pip3 install setuptools --break-system-packages
 
       - name: Package DMG (universal)
         run: npx electron-builder --mac dmg --universal
