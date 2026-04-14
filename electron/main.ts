@@ -55,4 +55,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
 app.on('before-quit', () => destroyAllPtySessions())
-app.on('web-contents-created', (_e, contents) => { contents.on('new-window', (e: Event) => e.preventDefault()) })
+app.on('web-contents-created', (_e, contents) => {
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }))
+})
