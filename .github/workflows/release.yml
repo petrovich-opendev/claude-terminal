@@ -40,6 +40,7 @@ jobs:
         run: npx electron-builder --mac dmg --universal
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -53,12 +54,19 @@ jobs:
             © 2026 AGENTDATA.PRO / Ruslan Karimov
 
             ### Install
-            1. Download `Claude.Terminal-*.dmg`
-            2. Open DMG → drag to Applications
-            3. Launch Claude Terminal
+            1. Download `Claude-Terminal-*-universal.dmg`
+            2. Open DMG → drag **Claude Terminal** to Applications
+            3. First launch — macOS will block unsigned app. Run once in Terminal:
+            ```
+            xattr -cr /Applications/Claude\ Terminal.app
+            ```
+            4. Launch Claude Terminal normally
 
             ### Requirements
             - macOS 13.0 Ventura or later
             - Claude Code CLI: `npm install -g @anthropic-ai/claude-code`
+
+            > **Note:** This build is unsigned (no Apple Developer certificate).
+            > The `xattr -cr` command removes the quarantine flag — safe to run.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
