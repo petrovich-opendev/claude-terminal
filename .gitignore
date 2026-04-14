@@ -1,0 +1,39 @@
+# Rust / Tauri
+target/
+src-tauri/target/
+Cargo.lock
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+
+# Build artifacts
+src-tauri/gen/
+*.dmg
+*.app
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+
+# Secrets (never commit)
+.env
+.env.*
+*.key
+*.pem
+*.p12
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Local Claude Code overrides
+.claude/settings.local.json
