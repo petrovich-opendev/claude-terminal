@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTerminalStore } from '@/store/terminal'
 import { useSessionsStore } from '@/store/sessions'
+import { useActivePtyId } from '@/store/tabs'
 import styles from './FilesPanel.module.css'
 
 interface Props {
@@ -63,7 +64,8 @@ function parentPath(p: string, isRemote: boolean): string {
 }
 
 export default function FilesPanel({ onFileSelect }: Props) {
-  const { cwd, ptyId } = useTerminalStore()
+  const cwd   = useTerminalStore(s => s.cwd)
+  const ptyId = useActivePtyId()
   const { sessions, activeSessionId } = useSessionsStore()
   const activeSession = activeSessionId ? sessions.find(s => s.id === activeSessionId) ?? null : null
   const isSSH = activeSession !== null

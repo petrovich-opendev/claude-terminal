@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useTerminalStore } from '@/store/terminal'
+import { useActivePtyId } from '@/store/tabs'
 
 interface VaultNote {
   path: string
@@ -40,7 +40,7 @@ export default function ObsidianPanel() {
   const [loadingNote, setLoadingNote] = useState(false)
   const [msg, setMsg]                 = useState<{ text: string; color: string } | null>(null)
   const abortRef = useRef<AbortController | null>(null)
-  const ptyId = useTerminalStore(s => s.ptyId)
+  const ptyId = useActivePtyId()
 
   function showMsg(text: string, color = '#22c55e', ms = 3000) {
     setMsg({ text, color })

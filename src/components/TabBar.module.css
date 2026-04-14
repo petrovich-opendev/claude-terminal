@@ -1,0 +1,109 @@
+.bar {
+  display: flex;
+  align-items: center;
+  background: #0b0b14;
+  border-bottom: 1px solid #1a1a2e;
+  flex-shrink: 0;
+  height: 32px;
+  overflow: hidden;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px 0 8px;
+  height: 32px;
+  min-width: 80px;
+  max-width: 160px;
+  cursor: pointer;
+  border-right: 1px solid #1a1a2e;
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  color: #5a6080;
+  user-select: none;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+}
+
+.tab:hover { background: #111120; color: #9090b0; }
+
+.tab.active {
+  background: #08080a;
+  color: #c0c8e0;
+  border-bottom: 2px solid var(--amber, #f59e0b);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #333;
+}
+.dot.running { background: #22c55e; box-shadow: 0 0 4px #22c55e88; }
+.dot.exited  { background: #ef4444; }
+.dot.idle    { background: #444; }
+
+.title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tmuxBadge {
+  font-size: 9px;
+  padding: 1px 3px;
+  background: #1a2a1a;
+  border: 1px solid #2a4a2a;
+  border-radius: 2px;
+  color: #4a8a4a;
+  flex-shrink: 0;
+}
+
+.close {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  color: #444;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.1s, color 0.1s;
+}
+.close:hover { background: #2a1a1a; color: #ef4444; }
+
+.add {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-left: 1px solid #1a1a2e;
+  background: transparent;
+  color: #444;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: color 0.1s, background 0.1s;
+}
+.add:hover { color: #f59e0b; background: #111120; }

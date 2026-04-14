@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { SSHSession } from '@/lib/models'
 import { useSessionsStore } from '@/store/sessions'
-import { useTerminalStore } from '@/store/terminal'
+import { useActivePtyId, useTabsStore } from '@/store/tabs'
 import styles from './SSHPanel.module.css'
 
 function genId() {
@@ -35,7 +35,10 @@ function StatusDot({ status }: { status: SSHSession['status'] }) {
 
 export default function SSHPanel() {
   const { sessions, addSession, updateSession, removeSession, setActive } = useSessionsStore()
-  const ptyId = useTerminalStore(s => s.ptyId)
+  const ptyId = useActivePtyId()
+  const updateTab = useTabsStore(s => s.updateTab)
+  const activeTabId = useTabsStore(s => s.activeTabId)
+  const [useTmux, setUseTmux] = useState(true)
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [hoverId, setHoverId] = useState<string | null>(null)
@@ -144,11 +147,21 @@ export default function SSHPanel() {
   }
 
   async function handleConnect(s: SSHSession) {
-    if (!ptyId) return
+    if (!ptyId || !activeTabId) return
     updateSession(s.id, { status: 'connecting' })
     setActive(s.id)
     const port = s.port && s.port !== 22 ? ` -p ${s.port}` : ''
-    const cmd = `ssh${port} ${s.user}@${s.host}\n`
+    const tabId = activeTabId
+    const tmuxName = `ct-${tabId.slice(0, 8)}`
+    let cmd: string
+    if (useTmux) {
+      // SSH + tmux: persistent session that survives app close
+      cmd = `ssh -t${port} ${s.user}@${s.host} "tmux new-session -A -s ${tmuxName}"\n`
+      updateTab(tabId, { title: s.name, sshSessionId: s.id, tmuxEnabled: true, tmuxSessionName: tmuxName })
+    } else {
+      cmd = `ssh${port} ${s.user}@${s.host}\n`
+      updateTab(tabId, { title: s.name, sshSessionId: s.id, tmuxEnabled: false })
+    }
     await window.electronAPI.ptyWrite(ptyId, cmd).catch(() => {})
     updateSession(s.id, { status: 'connected' })
   }
@@ -241,6 +254,19 @@ export default function SSHPanel() {
             )}
           </div>
         ))}
+      </div>
+
+      {/* tmux toggle */}
+      <div className={styles.toolbar} style={{ justifyContent: 'flex-start', gap: 8, paddingBottom: 4 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: useTmux ? '#4a8a4a' : '#666', cursor: 'pointer', userSelect: 'none' }}>
+          <input
+            type="checkbox"
+            checked={useTmux}
+            onChange={e => setUseTmux(e.target.checked)}
+            style={{ accentColor: '#4a8a4a' }}
+          />
+          tmux (24/7 — session survives app close)
+        </label>
       </div>
 
       {/* Toolbar */}

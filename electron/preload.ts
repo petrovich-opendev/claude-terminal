@@ -56,4 +56,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('sftp:progress', listener)
     return () => ipcRenderer.removeListener('sftp:progress', listener)
   },
+  // Tray / window
+  trayShow: () => ipcRenderer.invoke('tray:show'),
+  trayHide: () => ipcRenderer.invoke('tray:hide'),
+  trayQuit: () => ipcRenderer.invoke('tray:quit'),
 })

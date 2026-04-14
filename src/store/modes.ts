@@ -10,7 +10,7 @@ interface ModesState {
   resetTools: () => void
 }
 
-export const useModesStore = create<ModesState>()((set, get) => ({
+export const useModesStore = create<ModesState>()((set) => ({
   activeMode: 'coding',
   toolOverrides: {},
   setMode: (id) => set({ activeMode: id, toolOverrides: {} }),

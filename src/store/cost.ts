@@ -18,7 +18,7 @@ const EMPTY: Omit<SessionCost, 'estimatedUSD' | 'updatedAt'> = {
   model: 'claude-sonnet-4-6',
 }
 
-export const useCostStore = create<CostState>()((set, get) => ({
+export const useCostStore = create<CostState>()((set) => ({
   current: null,
   history: [],
   updateCost: (patch) => set((state) => {

@@ -1,4 +1,4 @@
-import { useTerminalStore } from '@/store/terminal'
+import { useActivePtyId } from '@/store/tabs'
 import type { QuickCommand } from '@/lib/models'
 import styles from './QuickCommands.module.css'
 
@@ -40,7 +40,7 @@ const CATEGORY_COLORS: Record<QuickCommand['category'], string> = {
 const CATEGORIES: QuickCommand['category'][] = ['session', 'code', 'git', 'arch']
 
 export default function QuickCommands() {
-  const { ptyId } = useTerminalStore()
+  const ptyId = useActivePtyId()
 
   const send = (cmd: string) => {
     if (!ptyId) return

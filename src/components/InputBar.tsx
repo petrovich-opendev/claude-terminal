@@ -1,12 +1,13 @@
 import {useState,useCallback,KeyboardEvent} from 'react'
+import {useActivePtyId,useActiveTabStatus} from '@/store/tabs'
 import {useTerminalStore} from '@/store/terminal'
 import styles from './InputBar.module.css'
 export default function InputBar(){
   const [val,setVal]=useState('')
   const [hist,setHist]=useState<string[]>([])
   const [idx,setIdx]=useState(-1)
-  const ptyId=useTerminalStore(s=>s.ptyId)
-  const status=useTerminalStore(s=>s.status)
+  const ptyId=useActivePtyId()
+  const status=useActiveTabStatus()
   const up=useTerminalStore(s=>s.uploadProgress)
   const submit=useCallback(()=>{
     if(!val.trim()||!ptyId)return

@@ -12,6 +12,12 @@
   overflow: hidden;
 }
 
+.sidebarWrap {
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
 .center {
   display: flex;
   flex-direction: column;

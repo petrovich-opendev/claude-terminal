@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useCostStore } from '@/store/cost'
-import { useTerminalStore } from '@/store/terminal'
+import { useActivePtyId } from '@/store/tabs'
 import styles from './MemoryPanel.module.css'
 
 interface Props {
@@ -36,7 +36,7 @@ function formatBytes(n: number): string {
 export default function MemoryPanel({ onFileSelect }: Props) {
   const [entries, setEntries] = useState<MemoryEntry[]>([])
   const current = useCostStore((s) => s.current)
-  const { ptyId } = useTerminalStore()
+  const ptyId = useActivePtyId()
 
   useEffect(() => {
     Promise.all(

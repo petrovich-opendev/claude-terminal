@@ -1,11 +1,12 @@
 import {useCostStore} from '@/store/cost'
 import {useTerminalStore} from '@/store/terminal'
+import {useActiveTabStatus} from '@/store/tabs'
 import {useSessionsStore} from '@/store/sessions'
 import {MODEL_PRICING} from '@/lib/pricing'
 import styles from './StatusBar.module.css'
 export default function StatusBar(){
   const cost=useCostStore(s=>s.current)
-  const status=useTerminalStore(s=>s.status)
+  const status=useActiveTabStatus()
   const upload=useTerminalStore(s=>s.uploadProgress)
   const sessions=useSessionsStore(s=>s.sessions)
   const activeId=useSessionsStore(s=>s.activeSessionId)

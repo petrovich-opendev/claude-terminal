@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Editor from '@monaco-editor/react'
 import type * as Monaco from 'monaco-editor'
-import { useTerminalStore } from '@/store/terminal'
+import { useActivePtyId } from '@/store/tabs'
 
 interface Props {
   filePath: string
@@ -42,7 +42,7 @@ export default function FileEditor({ filePath, onClose }: Props) {
   const [readOnly, setReadOnly]   = useState(true)
   const [saved, setSaved]         = useState(false)
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null)
-  const ptyId = useTerminalStore(s => s.ptyId)
+  const ptyId = useActivePtyId()
 
   useEffect(() => {
     setLoading(true)

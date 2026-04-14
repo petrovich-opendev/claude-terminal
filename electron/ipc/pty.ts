@@ -4,7 +4,7 @@ try { pty = require('node-pty') } catch { pty = null }
 type IPty = import('node-pty').IPty
 const sessions = new Map<string, IPty>()
 let _id = 1
-const ALLOWED = new Set(['bash','zsh','fish','sh','ssh','claude'])
+const ALLOWED = new Set(['bash','zsh','fish','sh','ssh','claude','tmux'])
 function validateCmd(cmd: string) { const b = cmd.split('/').pop()??''; if (!ALLOWED.has(b)) throw new Error(`Disallowed: ${b}`); return cmd }
 export function registerPtyHandlers(ipcMain: IpcMain, win: BrowserWindow): void {
   ipcMain.handle('pty:create', async (_e, opts: { cols:number;rows:number;cwd:string;cmd:string;args:string[] }) => {

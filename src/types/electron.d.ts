@@ -25,6 +25,9 @@ declare global {
       sftpUpload(sessionId:string,localPaths:string[],remoteDir:string):Promise<{ok:boolean;count:number}>
       sftpDownload(sessionId:string,remotePath:string,localDir:string):Promise<{ok:boolean}>
       onSftpProgress(cb:(p:{file:string;percent:number})=>void):()=>void
+      trayShow():Promise<void>
+      trayHide():Promise<void>
+      trayQuit():Promise<void>
     }
   }
 }

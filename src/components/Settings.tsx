@@ -1,0 +1,141 @@
+import { useEffect } from 'react'
+import { useConfigStore, FONT_FAMILIES } from '@/store/config'
+import styles from './Settings.module.css'
+
+interface Props {
+  onClose: () => void
+}
+
+const FONT_LABELS: Record<string, string> = {
+  '"JetBrains Mono", monospace': 'JetBrains Mono',
+  '"Cascadia Code", monospace':  'Cascadia Code',
+  '"Fira Code", monospace':      'Fira Code',
+  'Monaco, monospace':           'Monaco',
+  'Menlo, monospace':            'Menlo',
+}
+
+export default function Settings({ onClose }: Props) {
+  const cfg = useConfigStore()
+
+  // Cmd+, or Escape → close
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || (e.key === ',' && e.metaKey)) {
+        e.preventDefault()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div className={styles.overlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className={styles.panel}>
+        {/* Header */}
+        <div className={styles.header}>
+          <span className={styles.title}>Settings</span>
+          <button className={styles.closeBtn} onClick={onClose}>×</button>
+        </div>
+
+        <div className={styles.body}>
+          {/* Terminal section */}
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>Terminal</h3>
+
+            <label className={styles.label}>Font family</label>
+            <select
+              className={styles.select}
+              value={cfg.fontFamily}
+              onChange={e => cfg.setFontFamily(e.target.value)}
+            >
+              {FONT_FAMILIES.map(f => (
+                <option key={f} value={f} style={{ fontFamily: f }}>
+                  {FONT_LABELS[f] ?? f}
+                </option>
+              ))}
+            </select>
+
+            <label className={styles.label}>
+              Font size
+              <span className={styles.value}>{cfg.fontSize}px</span>
+            </label>
+            <input
+              type="range" min={10} max={20} step={1}
+              value={cfg.fontSize}
+              onChange={e => cfg.setFontSize(Number(e.target.value))}
+              className={styles.range}
+            />
+            <div className={styles.rangeTicks}>
+              <span>10</span><span>15</span><span>20</span>
+            </div>
+
+            <label className={styles.label}>
+              Line height
+              <span className={styles.value}>{cfg.lineHeight.toFixed(1)}</span>
+            </label>
+            <input
+              type="range" min={1.0} max={1.6} step={0.1}
+              value={cfg.lineHeight}
+              onChange={e => cfg.setLineHeight(Number(e.target.value))}
+              className={styles.range}
+            />
+            <div className={styles.rangeTicks}>
+              <span>1.0</span><span>1.3</span><span>1.6</span>
+            </div>
+          </section>
+
+          {/* Claude Code section */}
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>Claude Code Alerts</h3>
+
+            <label className={styles.label}>
+              Compact suggestion threshold — cost
+              <span className={styles.value}>${cfg.costAlertUSD.toFixed(2)}</span>
+            </label>
+            <input
+              type="range" min={0.1} max={5.0} step={0.1}
+              value={cfg.costAlertUSD}
+              onChange={e => cfg.setCostAlertUSD(Number(e.target.value))}
+              className={styles.range}
+            />
+            <div className={styles.rangeTicks}>
+              <span>$0.10</span><span>$2.50</span><span>$5.00</span>
+            </div>
+
+            <label className={styles.label}>
+              Compact suggestion threshold — context
+              <span className={styles.value}>{cfg.contextAlertPct}%</span>
+            </label>
+            <input
+              type="range" min={10} max={99} step={1}
+              value={cfg.contextAlertPct}
+              onChange={e => cfg.setContextAlertPct(Number(e.target.value))}
+              className={styles.range}
+            />
+            <div className={styles.rangeTicks}>
+              <span>10%</span><span>55%</span><span>99%</span>
+            </div>
+          </section>
+
+          {/* Preview */}
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>Preview</h3>
+            <div
+              className={styles.preview}
+              style={{
+                fontFamily: cfg.fontFamily,
+                fontSize: cfg.fontSize,
+                lineHeight: cfg.lineHeight,
+              }}
+            >
+              <span style={{ color: '#22c55e' }}>❯</span> claude --model sonnet-4-6<br />
+              <span style={{ color: '#60a5fa' }}>✓</span> Task completed in 3 steps<br />
+              <span style={{ color: '#f59e0b' }}>$</span> git commit -m "feat: add feature"
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  )
+}
