@@ -45,7 +45,8 @@ for i in range(80):
         px2,py2 = CX+10+i, CY+55+dy2
         if 0<=px2<W and 0<=py2<H: pixels[py2][px2] = (245,158,11)
 
-os.makedirs('/home/dev/claude-terminal/resources', exist_ok=True)
-with open('/home/dev/claude-terminal/resources/icon.png', 'wb') as f:
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.makedirs(os.path.join(ROOT, 'resources'), exist_ok=True)
+with open(os.path.join(ROOT, 'resources', 'icon.png'), 'wb') as f:
     f.write(make_png(pixels, W, H))
 print('OK: resources/icon.png 512x512')
