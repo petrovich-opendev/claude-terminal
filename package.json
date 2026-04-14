@@ -75,10 +75,8 @@
       "dist-electron/**/*"
     ],
     "directories": {
+      "output": "release",
       "buildResources": "resources"
-    },
-    "asarUnpack": [
-      "**/*.node"
-    ]
+    }
   }
 }

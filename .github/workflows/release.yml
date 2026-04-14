@@ -44,7 +44,7 @@ jobs:
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.dmg
+          files: release/*.dmg
           name: Claude Terminal ${{ github.ref_name }}
           body: |
             ## Claude Terminal ${{ github.ref_name }}
