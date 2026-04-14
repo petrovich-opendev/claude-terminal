@@ -60,10 +60,25 @@
     "icon": "resources/icon.png",
     "mac": {
       "category": "public.app-category.developer-tools",
-      "target": [{"target": "dmg", "arch": ["universal"]}],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
       "minimumSystemVersion": "13.0"
     },
-    "files": ["dist/**/*", "dist-electron/**/*"],
-    "directories": {"buildResources": "resources"}
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "directories": {
+      "buildResources": "resources"
+    },
+    "asarUnpack": [
+      "**/*.node"
+    ]
   }
 }
