@@ -71,6 +71,7 @@ export default function FilesPanel({ onFileSelect }: Props) {
   // Remote path state (SSH mode only)
   const [remotePath, setRemotePath] = useState<string>('~')
   const [pathInput, setPathInput]   = useState<string>('~')
+  const [flashMsg, setFlashMsg]     = useState<string | null>(null)
   const pathInputRef = useRef<HTMLInputElement>(null)
 
   // Reset remote path when SSH session changes
@@ -114,6 +115,7 @@ export default function FilesPanel({ onFileSelect }: Props) {
   const navigateTo = useCallback((p: string) => {
     setRemotePath(p)
     setPathInput(p)
+    setTimeout(() => pathInputRef.current?.focus(), 0)
   }, [])
 
   const handlePathSubmit = useCallback(() => {
@@ -151,9 +153,10 @@ export default function FilesPanel({ onFileSelect }: Props) {
 
   const handleFileSelect = useCallback((node: FsNode) => {
     if (isSSH) {
-      // Remote files cannot be opened in the editor — send path to Claude instead
       if (ptyId) {
         window.electronAPI.ptyWrite(ptyId, `claude "Explain the code in ${node.path}"\r`).catch(() => {})
+        setFlashMsg(`→ Claude: ${node.name}`)
+        setTimeout(() => setFlashMsg(null), 2500)
       }
     } else {
       onFileSelect(node.path)
@@ -199,6 +202,7 @@ export default function FilesPanel({ onFileSelect }: Props) {
         )}
       </div>
 
+      {flashMsg && <div className={styles.flashMsg}>{flashMsg}</div>}
       {loading && <div className={styles.loading}>Loading…</div>}
       {rootError && <div className={styles.rootError}>⚠ {rootError}</div>}
       {!loading && !rootError && nodes.length === 0 && (

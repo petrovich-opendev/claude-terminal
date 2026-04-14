@@ -23,7 +23,7 @@ export default function Terminal() {
     if (!containerRef.current) return
     const term = new XTerm({
       fontFamily:'"JetBrains Mono","Cascadia Code",monospace',
-      fontSize:13,lineHeight:1.6,
+      fontSize:13,lineHeight:1.2,
       theme:{background:'#08080a',foreground:'#e8e8f0',cursor:'#f59e0b',cursorAccent:'#000000',selectionBackground:'rgba(245,158,11,0.2)',black:'#1c1c28',brightBlack:'#363650',red:'#ef4444',brightRed:'#f87171',green:'#22c55e',brightGreen:'#4ade80',yellow:'#f59e0b',brightYellow:'#fcd34d',blue:'#60a5fa',brightBlue:'#93c5fd',magenta:'#a78bfa',brightMagenta:'#c4b5fd',cyan:'#34d399',brightCyan:'#6ee7b7',white:'#a0a0b8',brightWhite:'#e8e8f0'},
       allowProposedApi:true,macOptionIsMeta:true,rightClickSelectsWord:true,scrollback:10000,cursorBlink:true
     })
@@ -43,7 +43,7 @@ export default function Terminal() {
           args:[]
         })
         ptyIdRef.current=r.id; setPtyId(r.id); setStatus('running')
-        const offData=window.electronAPI.onPtyData(r.id,d=>term.write(d))
+        const offData=window.electronAPI.onPtyData(r.id,d=>{ term.write(d); term.scrollToBottom() })
         const offExit=window.electronAPI.onPtyExit(r.id,()=>{setStatus('exited');term.write('\r\n[Process exited]\r\n')})
         term.onData(d=>{ if(ptyIdRef.current) window.electronAPI.ptyWrite(ptyIdRef.current,d) })
         return ()=>{offData();offExit()}

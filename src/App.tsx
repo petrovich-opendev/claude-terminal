@@ -3,7 +3,6 @@ import TitleBar from './components/TitleBar'
 import ModeBar from './components/ModeBar'
 import Sidebar from './components/sidebar/Sidebar'
 import Terminal from './components/Terminal'
-import InputBar from './components/InputBar'
 import QuickCommands from './components/QuickCommands'
 import StatusBar from './components/StatusBar'
 import FileEditor from './panels/FileEditor'
@@ -31,7 +30,6 @@ export default function App() {
         <Sidebar onFileSelect={handleFileSelect} />
         <div className={styles.center}>
           <Terminal />
-          <InputBar />
           <QuickCommands />
           <StatusBar />
         </div>

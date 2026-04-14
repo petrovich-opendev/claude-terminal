@@ -11,6 +11,15 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function loadSessions() { const f=path.join(os.homedir(),'.config','claude-terminal','sessions.json'); return fs.existsSync(f)?JSON.parse(fs.readFileSync(f,'utf-8')):[] }
 
+const SFTP_IGNORE = new Set(['.git','node_modules','__pycache__','dist','dist-electron','.vite'])
+
+function validateRemotePath(p: string): void {
+  const normalized = path.posix.normalize(p)
+  if (normalized.includes('/../') || normalized.endsWith('/..') || normalized === '..') {
+    throw new Error('Path traversal not allowed')
+  }
+}
+
 async function buildConnectOpts(sess: {
   host: string; port?: number; user: string;
   authType: string; keyPath?: string; id: string
@@ -35,6 +44,7 @@ export function registerSftpHandlers(ipcMain: IpcMain, win: BrowserWindow): void
     if (!ssh2) throw new Error('ssh2 not available')
     if (!UUID_RE.test(sessionId)) throw new Error('Invalid session ID')
     if (typeof remotePath !== 'string' || !remotePath) throw new Error('Path must be a non-empty string')
+    validateRemotePath(remotePath)
     const sess = loadSessions().find((s: {id:string}) => s.id === sessionId)
     if (!sess) throw new Error('Session not found')
     const expanded = remotePath.replace(/^~($|\/)/, `/home/${sess.user}$1`)
@@ -47,9 +57,8 @@ export function registerSftpHandlers(ipcMain: IpcMain, win: BrowserWindow): void
         sftp.readdir(expanded, (err2, list) => {
           conn.end()
           if (err2) return reject(err2)
-          const IGNORE = new Set(['.git','node_modules','__pycache__','dist','dist-electron','.vite'])
           const items = list
-            .filter(e => !IGNORE.has(e.filename) && !e.filename.startsWith('.'))
+            .filter(e => !SFTP_IGNORE.has(e.filename) && !e.filename.startsWith('.'))
             .map(e => {
               const isDir = !!(e.attrs.mode && (e.attrs.mode & 0o170000) === 0o040000)
               const ext = isDir ? undefined : path.extname(e.filename).toLowerCase() || undefined

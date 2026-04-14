@@ -6,6 +6,7 @@ import styles from './StatusBar.module.css'
 export default function StatusBar(){
   const cost=useCostStore(s=>s.current)
   const status=useTerminalStore(s=>s.status)
+  const upload=useTerminalStore(s=>s.uploadProgress)
   const sessions=useSessionsStore(s=>s.sessions)
   const activeId=useSessionsStore(s=>s.activeSessionId)
   const session=sessions.find(s=>s.id===activeId)
@@ -18,6 +19,7 @@ export default function StatusBar(){
         <span className={`${styles.dot} ${styles[status]??''}`}/>
         <span className={styles.text}>{session?session.name:'No session'}</span>
         {session&&<span className={styles.host}>{session.host}</span>}
+        {upload&&<span className={styles.upload}>⬆ {upload.file} {upload.percent}%</span>}
       </div>
       <div className={styles.right}>
         {cost&&<>

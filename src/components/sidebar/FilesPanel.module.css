@@ -77,6 +77,7 @@
   color: #5b9ef4;
   border-color: #5b9ef455;
 }
+.flashMsg{padding:5px 10px;font-size:11px;color:#4ade80;background:#0a1a0a;border-bottom:1px solid #1a2e1a;flex-shrink:0;}
 .loading{padding:12px;color:#666;font-size:12px;text-align:center;}
 .rootError{padding:10px 12px;color:#ef4444;font-size:12px;}
 .empty{padding:12px;color:#555;font-size:12px;text-align:center;}
