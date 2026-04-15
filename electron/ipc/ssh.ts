@@ -12,6 +12,7 @@ function isValidHost(h: string): boolean {
   if (/^\[[a-fA-F0-9:]+\]$/.test(h)) return true
   return false
 }
+const SAFE = /^[a-zA-Z0-9._@-]+$/
 function readSessions() { const f=SESS_FILE(); if(!fs.existsSync(f))return []; try{return JSON.parse(fs.readFileSync(f,'utf-8'))}catch{return []} }
 function writeSessions(s: unknown[]) { const d=path.dirname(SESS_FILE()); if(!fs.existsSync(d))fs.mkdirSync(d,{recursive:true,mode:0o700}); fs.writeFileSync(SESS_FILE(),JSON.stringify(s,null,2),{mode:0o600}) }
 export function registerSshHandlers(ipcMain: IpcMain): void {
