@@ -1,7 +1,7 @@
 # BUGS.md — claude-terminal
 
 > Живой трекер известных проблем. Обновляется после каждой сессии.
-> Последнее обновление: 2026-04-15 (сессия 3)
+> Последнее обновление: 2026-04-15 (сессия 4)
 
 ---
 
@@ -22,6 +22,7 @@
 | B-1 | `electron/ipc/config.ts` | 5 | `app.getPath('home')` вызывался на уровне модуля до `app.whenReady()` — крэш при инициализации. **ИСПРАВЛЕНО** заменой на `os.homedir()` (commit 1737b36) | FIXED |
 | B-2 | `src/components/TerminalPane.tsx` | 108,133 | **Race condition при размонтировании** — `spawnPty()` возвращает `Promise<cleanup>`, cleanup вызывает `.then()` в React-деструкторе. Если компонент размонтируется раньше resolve — слушатели `pty:data`/`pty:exit` не отписываются, утечка памяти | FIXED — `alive` flag |
 | B-9 | `src/components/TerminalPane.tsx` | — | **Scroll колесо мыши писало историю команд** — wheel события уходили в PTY как ESC[A/B, bash интерпретировал как ↑↓. Клик не фокусировал xterm → мышь не работала. Root cause: listener в bubble phase, xterm-viewport обрабатывал событие первым. **ИСПРАВЛЕНО** `capture:true` (должно держаться) | FIXED |
+| B-11 | `src/components/TerminalPane.tsx` | — | **Trackpad scroll не работал** — `term.scrollLines()` не вызывает визуальный ре-рендер в Electron/macOS. Root fix: напрямую двигаем `.xterm-viewport.scrollTop` — xterm слушает `scroll` event на своём viewport и сам обновляет ydisp + canvas. Дополнительно: флаг `userScrolledUp` предотвращает сброс скролла при новых данных из PTY. | FIXED (сессия 4) |
 | B-3 | `electron/ipc/sftp.ts` | 103 | **Upload Promise зависает** — счётчик `done` инкрементируется только в `ws.on('close')`. Если SSH-стрим закрывается с ошибкой без события `close` — Promise остаётся pending навсегда | FIXED — `settle()` one-shot |
 | B-4 | `electron/ipc/ssh.ts` | 6 | `JSON.parse` без try-catch — крэш IPC handler если `sessions.json` повреждён | FIXED (также sftp.ts) |
 | B-10 | `electron/ipc/sftp.ts` + `SSHPanel.tsx` | 45, handleImport | **`sftp:list` → Invalid session ID** — две причины: (1) UUID_RE отклонял legacy IDs (до commit 7869ca4); (2) импортированные сессии не сохранялись в sessions.json. **ИСПРАВЛЕНО** (commit 75728bb) | FIXED |

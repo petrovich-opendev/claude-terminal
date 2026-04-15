@@ -66,15 +66,39 @@ export default function TerminalPane({ tabId, visible }: Props) {
     fitRef.current    = fit
     searchRef.current = search
 
-    // Intercept wheel events: scroll terminal buffer, never forward to PTY.
-    // Without this, xterm sends ESC[A/B to the shell and bash navigates history.
+    // B-11: Intercept wheel events — scroll terminal buffer, never forward to PTY.
+    // Without capture:true, xterm-viewport handles the event first and sends
+    // ESC[A/B to the shell (bash interprets as history navigation).
+    //
+    // term.scrollLines() does not reliably trigger a visual re-render in Electron
+    // on macOS. The correct approach is to manipulate .xterm-viewport scrollTop
+    // directly — xterm listens to its own 'scroll' event and updates ydisp +
+    // re-renders the canvas automatically.
+    //
+    // Track whether user has scrolled away from bottom (used by onPtyData)
+    let userScrolledUp = false
+
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      term.scrollLines(e.deltaY > 0 ? 3 : -3)
+
+      const viewport = containerRef.current?.querySelector('.xterm-viewport') as HTMLElement | null
+      if (!viewport) return
+
+      // macOS trackpad: deltaMode=0 (pixels) — use deltaY directly.
+      // Physical mouse wheel: deltaMode=1 (lines) — scale to pixels.
+      // Page mode: deltaMode=2 — scale to full viewport height.
+      const pixelDelta = e.deltaMode === 1 ? e.deltaY * fontSize * lineHeight
+                       : e.deltaMode === 2 ? e.deltaY * viewport.clientHeight
+                       : e.deltaY
+
+      viewport.scrollTop += pixelDelta
+
+      // Update scroll-away flag after DOM has settled
+      const atBottom = viewport.scrollTop >= viewport.scrollHeight - viewport.clientHeight - 2
+      userScrolledUp = !atBottom
     }
-    // capture:true — перехватываем до xterm-viewport, иначе xterm успевает
-    // отправить ESC[A/B в PTY раньше preventDefault()
+
     containerRef.current.addEventListener('wheel', onWheel, { passive: false, capture: true })
 
     // Click on terminal → focus xterm so mouse selection and keyboard input work.
@@ -87,7 +111,12 @@ export default function TerminalPane({ tabId, visible }: Props) {
 
     // T-1: Register onData BEFORE spawnPty to avoid losing first bytes.
     // ptyIdRef is null until PTY spawns, so writes are silently dropped until ready.
+    // B-11: When user types, snap back to bottom and resume auto-scrolling.
     term.onData(d => {
+      if (userScrolledUp) {
+        userScrolledUp = false
+        term.scrollToBottom()
+      }
       if (ptyIdRef.current) window.electronAPI.ptyWrite(ptyIdRef.current, d)
     })
 
@@ -119,12 +148,12 @@ export default function TerminalPane({ tabId, visible }: Props) {
 
         const offData = window.electronAPI.onPtyData(r.id, d => {
           if (!alive) return
-          // T-2: Guard against null buffer.active during rapid resize
-          const atBottom = term.buffer.active
-            ? term.buffer.active.viewportY + term.rows >= term.buffer.active.length - 1
-            : true
+          // B-11: Only auto-scroll to bottom if user hasn't scrolled up.
+          // Previously, atBottom was checked before write() — but write() itself
+          // moves the viewport, making atBottom almost always true. This defeated
+          // any user attempt to scroll up and read history.
           term.write(d)
-          if (atBottom) term.scrollToBottom()
+          if (!userScrolledUp) term.scrollToBottom()
         })
         const offExit = window.electronAPI.onPtyExit(r.id, () => {
           if (!alive) return
