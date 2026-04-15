@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -16,7 +17,7 @@ jobs:
           node-version: '22'
       - run: npm install
       - run: npx tsc --noEmit
-      - run: npx eslint src --ext .ts,.tsx --max-warnings 0
+      - run: npx eslint src electron --max-warnings 0
 
   security-audit:
     runs-on: macos-latest
@@ -31,12 +32,17 @@ jobs:
   build:
     runs-on: macos-latest
     needs: [lint-and-typecheck]
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: npm install
+      - name: Get version
+        id: get_version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
       - name: Generate app icon
         run: python3 scripts/gen_icon.py
       - name: Build renderer
@@ -51,3 +57,46 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - name: Verify DMG output
         run: ls -la release/*.dmg
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Claude-Terminal-${{ steps.get_version.outputs.version }}-universal.dmg
+          path: release/*.dmg
+          retention-days: 30
+
+  release:
+    runs-on: macos-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - name: Get version
+        id: get_version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Generate app icon
+        run: python3 scripts/gen_icon.py
+      - name: Build renderer
+        run: npm run build:renderer
+      - name: Build Electron
+        run: npm run build:electron
+      - name: Fix distutils for node-gyp
+        run: pip3 install setuptools --break-system-packages
+      - name: Package DMG
+        run: npx electron-builder --mac dmg --universal
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Claude Terminal v${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: release/*.dmg
