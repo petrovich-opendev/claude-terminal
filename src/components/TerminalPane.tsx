@@ -61,6 +61,19 @@ export default function TerminalPane({ tabId, visible }: Props) {
     fitRef.current    = fit
     searchRef.current = search
 
+    // Intercept wheel events: scroll terminal buffer, never forward to PTY.
+    // Without this, xterm sends ESC[A/B to the shell and bash navigates history.
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      term.scrollLines(e.deltaY > 0 ? 3 : -3)
+    }
+    containerRef.current.addEventListener('wheel', onWheel, { passive: false })
+
+    // Click on terminal → focus xterm so mouse selection and keyboard input work.
+    const onPointerDown = () => term.focus()
+    containerRef.current.addEventListener('pointerdown', onPointerDown)
+
     const spawnPty = async () => {
       const { cols, rows } = term
       try {
@@ -129,6 +142,8 @@ export default function TerminalPane({ tabId, visible }: Props) {
 
     return () => {
       window.removeEventListener('keydown', onKeyDown)
+      containerRef.current?.removeEventListener('wheel', onWheel)
+      containerRef.current?.removeEventListener('pointerdown', onPointerDown)
       ro.disconnect()
       cleanupPty.then(off => off?.())
       if (ptyIdRef.current) window.electronAPI.ptyDestroy(ptyIdRef.current)
