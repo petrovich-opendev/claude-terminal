@@ -90,6 +90,60 @@ export default function FilesPanel({ onFileSelect }: Props) {
 
   const currentPath = isSSH ? remotePath : cwd
 
+  // Upload state (SSH only)
+  const [uploadProgress, setUploadProgress] = useState<{ file: string; percent: number } | null>(null)
+  const [uploadError, setUploadError]       = useState<string | null>(null)
+  const [isDragOver, setIsDragOver]         = useState(false)
+  const dragCounterRef = useRef(0)
+
+  useEffect(() => {
+    if (!isSSH) return
+    const off = window.electronAPI.onSftpProgress(p => {
+      setUploadProgress(p)
+      if (p.percent >= 100) setTimeout(() => setUploadProgress(null), 1500)
+    })
+    return off
+  }, [isSSH])
+
+  const uploadFiles = useCallback(async (localPaths: string[]) => {
+    if (!activeSessionId || !localPaths.length) return
+    setUploadError(null)
+    try {
+      await window.electronAPI.sftpUpload(activeSessionId, localPaths, remotePath)
+    } catch (e) {
+      setUploadError((e as Error).message ?? 'Upload failed')
+      setTimeout(() => setUploadError(null), 4000)
+    }
+  }, [activeSessionId, remotePath])
+
+  const handlePickUpload = useCallback(async () => {
+    const paths = await window.electronAPI.fsPickFiles().catch(() => [] as string[])
+    await uploadFiles(paths)
+  }, [uploadFiles])
+
+  const handlePanelDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    dragCounterRef.current++
+    if (isSSH) setIsDragOver(true)
+  }, [isSSH])
+
+  const handlePanelDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    dragCounterRef.current--
+    if (dragCounterRef.current === 0) setIsDragOver(false)
+  }, [])
+
+  const handlePanelDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault()
+    dragCounterRef.current = 0
+    setIsDragOver(false)
+    if (!isSSH) return
+    const paths = Array.from(e.dataTransfer.files)
+      .map((f: File & { path?: string }) => f.path ?? '')
+      .filter(Boolean)
+    await uploadFiles(paths)
+  }, [isSSH, uploadFiles])
+
   const [nodes, setNodes]       = useState<FsNode[]>([])
   const [loading, setLoading]   = useState(true)
   const [rootError, setRootError] = useState<string | null>(null)
@@ -174,7 +228,22 @@ export default function FilesPanel({ onFileSelect }: Props) {
   }, [ptyId, isSSH])
 
   return (
-    <div className={styles.panel}>
+    <div
+      className={styles.panel}
+      onDragEnter={handlePanelDragEnter}
+      onDragLeave={handlePanelDragLeave}
+      onDragOver={e => e.preventDefault()}
+      onDrop={handlePanelDrop}
+    >
+      {isDragOver && isSSH && (
+        <div className={styles.dropOverlay}>
+          <div className={styles.dropOverlayInner}>
+            <span className={styles.dropIcon}>⬆</span>
+            <span>Drop to upload</span>
+            <span className={styles.dropDest}>{remotePath}</span>
+          </div>
+        </div>
+      )}
       {/* Path navigation bar */}
       <div className={styles.pathBar}>
         <button
@@ -204,6 +273,20 @@ export default function FilesPanel({ onFileSelect }: Props) {
         )}
       </div>
 
+      {isSSH && (
+        <div className={styles.uploadBar}>
+          <button className={styles.uploadBtn} onClick={handlePickUpload} title="Select files to upload to current folder">
+            ⬆ Upload to {remotePath}
+          </button>
+        </div>
+      )}
+      {uploadProgress && (
+        <div className={styles.progressBar}>
+          <div className={styles.progressFill} style={{ width: `${uploadProgress.percent}%` }} />
+          <span className={styles.progressLabel}>{uploadProgress.file} {uploadProgress.percent}%</span>
+        </div>
+      )}
+      {uploadError && <div className={styles.uploadError}>⚠ {uploadError}</div>}
       {flashMsg && <div className={styles.flashMsg}>{flashMsg}</div>}
       {loading && <div className={styles.loading}>Loading…</div>}
       {rootError && <div className={styles.rootError}>⚠ {rootError}</div>}

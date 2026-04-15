@@ -147,7 +147,7 @@ app.whenReady().then(() => {
   registerSshHandlers(ipcMain)
   registerKeychainHandlers(ipcMain)
   registerConfigHandlers(ipcMain)
-  registerFsHandlers(ipcMain)
+  registerFsHandlers(ipcMain, mainWin)
   registerSftpHandlers(ipcMain, mainWin)
   registerTrayHandlers()
 

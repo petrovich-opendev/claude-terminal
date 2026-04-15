@@ -1,4 +1,5 @@
-import type { IpcMain } from 'electron'
+import { dialog } from 'electron'
+import type { IpcMain, BrowserWindow } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -24,7 +25,20 @@ function safe(p: string): string {
   return canonical
 }
 
-export function registerFsHandlers(ipcMain: IpcMain): void {
+export function registerFsHandlers(ipcMain: IpcMain, win: BrowserWindow): void {
+  ipcMain.handle('fs:pick-files', async () => {
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openFile', 'multiSelections'],
+      title: 'Select files to upload',
+    })
+    if (result.canceled) return []
+    // Validate all selected paths are within HOME
+    return result.filePaths.filter(p => {
+      const resolved = path.resolve(p)
+      return resolved.startsWith(HOME + '/') || resolved === HOME
+    })
+  })
+
   ipcMain.handle('fs:list', async (_e, dir: string) => {
     const t = safe(dir)
     if (!fs.existsSync(t)) return []

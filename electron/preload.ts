@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   configSet: (config: unknown) => ipcRenderer.invoke('config:set', config),
   // FS
   fsList: (dir: string) => ipcRenderer.invoke('fs:list', dir),
+  fsPickFiles: () => ipcRenderer.invoke('fs:pick-files'),
   fsRead: (filePath: string) => ipcRenderer.invoke('fs:read', filePath),
   fsWrite: (filePath: string, content: string) => ipcRenderer.invoke('fs:write', filePath, content),
   // SFTP

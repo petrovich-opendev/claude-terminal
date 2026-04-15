@@ -130,6 +130,114 @@
   color: #c0c8e0;
 }
 
+/* ── Upload toolbar ────────────────────────────────────────────────────────── */
+.uploadBar {
+  padding: 4px 6px;
+  border-bottom: 1px solid #1a1a2e;
+  flex-shrink: 0;
+}
+
+.uploadBtn {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  background: #0e1520;
+  border: 1px dashed #2a3858;
+  border-radius: 4px;
+  color: #5b8fc0;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.uploadBtn:hover {
+  background: #121e30;
+  border-color: #4a7ab0;
+  color: #80b8e8;
+}
+
+/* ── Progress bar ──────────────────────────────────────────────────────────── */
+.progressBar {
+  position: relative;
+  height: 20px;
+  background: #0a0a14;
+  border-bottom: 1px solid #1a1a2e;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.progressFill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: #1a3a5a;
+  transition: width 0.2s;
+}
+
+.progressLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 10px;
+  color: #6090c0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.uploadError {
+  padding: 5px 10px;
+  font-size: 11px;
+  color: #ef4444;
+  background: #1a0a0a;
+  border-bottom: 1px solid #2e1a1a;
+  flex-shrink: 0;
+}
+
+/* ── Drag-over overlay ─────────────────────────────────────────────────────── */
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(10, 20, 40, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.dropOverlayInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #80b8e8;
+  font-size: 13px;
+  font-weight: 600;
+  border: 2px dashed #3a6a9a;
+  border-radius: 8px;
+  padding: 20px 24px;
+}
+
+.dropIcon {
+  font-size: 24px;
+}
+
+.dropDest {
+  font-size: 10px;
+  color: #5a8ab0;
+  font-weight: normal;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sshBadge {
   flex-shrink: 0;
   font-size: 9px;

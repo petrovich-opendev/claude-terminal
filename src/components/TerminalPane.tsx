@@ -4,10 +4,8 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
-import { useTerminalStore } from '@/store/terminal'
 import { useTabsStore } from '@/store/tabs'
 import { useConfigStore } from '@/store/config'
-import { useSessionsStore } from '@/store/sessions'
 
 interface Props {
   tabId: string
@@ -16,8 +14,6 @@ interface Props {
 
 export default function TerminalPane({ tabId, visible }: Props) {
   const updateTab     = useTabsStore(s => s.updateTab)
-  const setUploadProgress = useTerminalStore(s => s.setUploadProgress)
-  const activeSessionId   = useSessionsStore(s => s.activeSessionId)
   const { fontSize, fontFamily, lineHeight } = useConfigStore()
 
   const containerRef  = useRef<HTMLDivElement>(null)
@@ -102,8 +98,6 @@ export default function TerminalPane({ tabId, visible }: Props) {
 
     const cleanupPty = spawnPty()
 
-    const offProgress = window.electronAPI.onSftpProgress(p => setUploadProgress(p))
-
     const ro = new ResizeObserver(() => {
       fit.fit()
       if (ptyIdRef.current) {
@@ -127,7 +121,6 @@ export default function TerminalPane({ tabId, visible }: Props) {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       ro.disconnect()
-      offProgress()
       cleanupPty.then(off => off?.())
       if (ptyIdRef.current) window.electronAPI.ptyDestroy(ptyIdRef.current)
       term.dispose()
@@ -162,29 +155,9 @@ export default function TerminalPane({ tabId, visible }: Props) {
     }
   }, [visible])
 
-  // ── SFTP drag-and-drop ────────────────────────────────────────────────────
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault()
-    if (!activeSessionId) return
-    const files = Array.from(e.dataTransfer.files)
-      .map((f: File & { path?: string }) => f.path ?? '')
-      .filter(Boolean)
-    if (!files.length) return
-    setUploadProgress({ file: files[0], percent: 0 })
-    try {
-      await window.electronAPI.sftpUpload(activeSessionId, files, '~')
-    } catch (_err) {
-      setTimeout(() => setUploadProgress(null), 4000)
-    } finally {
-      setTimeout(() => setUploadProgress(null), 2000)
-    }
-  }
-
   return (
     <div
       style={{ display: visible ? 'flex' : 'none', flex: 1, overflow: 'hidden', position: 'relative' }}
-      onDragOver={e => { e.preventDefault() }}
-      onDrop={handleDrop}
     >
       <div
         ref={containerRef}

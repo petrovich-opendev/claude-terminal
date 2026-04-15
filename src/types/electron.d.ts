@@ -19,6 +19,7 @@ declare global {
       configGet():Promise<unknown>
       configSet(c:unknown):Promise<{ok:boolean}>
       fsList(dir:string):Promise<Array<{name:string;path:string;isDirectory:boolean;extension?:string}>>
+      fsPickFiles():Promise<string[]>
       fsRead(p:string):Promise<string>
       fsWrite(p:string,content:string):Promise<{ok:boolean}>
       sftpList(sessionId:string,remotePath:string):Promise<Array<{name:string;path:string;isDirectory:boolean;extension?:string}>>
