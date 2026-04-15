@@ -30,8 +30,8 @@ export default function TerminalPane({ tabId, visible }: Props) {
 
   // ── Init xterm + PTY (once per tab) ───────────────────────────────────────
   useEffect(() => {
-    if (!container) return
-    const container = container
+    if (!containerRef.current) return
+    const container = containerRef.current
 
     const term = new XTerm({
       fontFamily,
