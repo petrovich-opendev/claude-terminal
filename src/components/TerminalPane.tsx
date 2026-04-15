@@ -30,7 +30,8 @@ export default function TerminalPane({ tabId, visible }: Props) {
 
   // ── Init xterm + PTY (once per tab) ───────────────────────────────────────
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!container) return
+    const container = container
 
     const term = new XTerm({
       fontFamily,
@@ -60,7 +61,7 @@ export default function TerminalPane({ tabId, visible }: Props) {
     term.loadAddon(fit)
     term.loadAddon(new WebLinksAddon())
     term.loadAddon(search)
-    term.open(containerRef.current)
+    term.open(container)
     fit.fit()
     xtermRef.current  = term
     fitRef.current    = fit
@@ -82,7 +83,7 @@ export default function TerminalPane({ tabId, visible }: Props) {
       e.preventDefault()
       e.stopPropagation()
 
-      const viewport = containerRef.current?.querySelector('.xterm-viewport') as HTMLElement | null
+      const viewport = container?.querySelector('.xterm-viewport') as HTMLElement | null
       if (!viewport) return
 
       // macOS trackpad: deltaMode=0 (pixels) — use deltaY directly.
@@ -99,11 +100,11 @@ export default function TerminalPane({ tabId, visible }: Props) {
       userScrolledUp = !atBottom
     }
 
-    containerRef.current.addEventListener('wheel', onWheel, { passive: false, capture: true })
+    container.addEventListener('wheel', onWheel, { passive: false, capture: true })
 
     // Click on terminal → focus xterm so mouse selection and keyboard input work.
     const onPointerDown = () => term.focus()
-    containerRef.current.addEventListener('pointerdown', onPointerDown)
+    container.addEventListener('pointerdown', onPointerDown)
 
     // alive flag: prevents writing to a disposed terminal if component unmounts
     // before spawnPty() Promise resolves (B-2 race condition fix)
@@ -179,12 +180,12 @@ export default function TerminalPane({ tabId, visible }: Props) {
         window.electronAPI.ptyResize(ptyIdRef.current, term.cols, term.rows).catch(() => {})
       }
     })
-    ro.observe(containerRef.current)
+    ro.observe(container)
 
     return () => {
       alive = false
-      containerRef.current?.removeEventListener('wheel', onWheel, { capture: true })
-      containerRef.current?.removeEventListener('pointerdown', onPointerDown)
+      container?.removeEventListener('wheel', onWheel, { capture: true })
+      container?.removeEventListener('pointerdown', onPointerDown)
       ro.disconnect()
       cleanupPty.then(off => off?.())
       if (ptyIdRef.current) window.electronAPI.ptyDestroy(ptyIdRef.current)
