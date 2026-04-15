@@ -40,4 +40,3 @@ logs/
 
 # GitHub Actions (requires workflow PAT scope to push)
 dist-electron/
-package-lock.json

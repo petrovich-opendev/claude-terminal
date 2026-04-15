@@ -15,8 +15,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install
-      - run: npx tsc --noEmit
+      - run: npm ci
+      - name: TypeCheck renderer (src/)
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: TypeCheck electron (electron/)
+        run: npx tsc --noEmit -p tsconfig.electron.json
       - run: npx eslint src electron --max-warnings 0
 
   security-audit:
@@ -26,7 +29,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install
+      - run: npm ci
       - run: npm audit --audit-level=moderate || true
 
   build:
@@ -39,7 +42,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install
+      - run: npm ci
       - name: Get version
         id: get_version
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
@@ -75,7 +78,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install
+      - run: npm ci
       - name: Get version
         id: get_version
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
