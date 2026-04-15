@@ -4,10 +4,6 @@ import { useSessionsStore } from '@/store/sessions'
 import { useActivePtyId, useTabsStore } from '@/store/tabs'
 import styles from './SSHPanel.module.css'
 
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2)
-}
-
 const EMPTY_FORM: Omit<SSHSession, 'id' | 'status' | 'lastConnected'> = {
   name: '',
   group: 'Default',
@@ -116,7 +112,7 @@ export default function SSHPanel() {
 
     const tags = form.tagsRaw.split(',').map((t) => t.trim()).filter(Boolean)
     const isNew = editId === ''
-    const id = isNew ? genId() : editId!
+    const id = isNew ? crypto.randomUUID() : editId!
     const session: SSHSession = {
       id,
       name: form.name.trim(),
