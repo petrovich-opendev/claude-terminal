@@ -18,6 +18,8 @@ export default function TitleBar({ onOpenSettings }: Props) {
 
   return (
     <div className={styles.bar}>
+      {/* Spacer for native macOS traffic light buttons (hiddenInset ~72px) */}
+      <div className={styles.trafficLightSpacer} />
       <button
         className={styles.iconBtn}
         onClick={toggleSidebar}
