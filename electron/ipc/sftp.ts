@@ -7,7 +7,9 @@ try { ssh2 = require('ssh2') } catch { ssh2 = null }
 let keytar: typeof import('keytar') | null = null
 try { keytar = require('keytar') } catch { keytar = null }
 const KEYCHAIN_SERVICE = 'claude-terminal'
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+// Accept any non-empty alphanumeric session ID (including legacy non-UUID IDs
+// generated before commit 7869ca4). Real security is the sessions.json lookup below.
+const SESSION_ID_RE = /^[a-zA-Z0-9_-]{1,128}$/
 
 function loadSessions() { const f=path.join(os.homedir(),'.config','claude-terminal','sessions.json'); return fs.existsSync(f)?JSON.parse(fs.readFileSync(f,'utf-8')):[] }
 
@@ -42,7 +44,7 @@ async function buildConnectOpts(sess: {
 export function registerSftpHandlers(ipcMain: IpcMain, win: BrowserWindow): void {
   ipcMain.handle('sftp:list', async (_e, sessionId: string, remotePath: string) => {
     if (!ssh2) throw new Error('ssh2 not available')
-    if (!UUID_RE.test(sessionId)) throw new Error('Invalid session ID')
+    if (!SESSION_ID_RE.test(sessionId)) throw new Error('Invalid session ID')
     if (typeof remotePath !== 'string' || !remotePath) throw new Error('Path must be a non-empty string')
     validateRemotePath(remotePath)
     const sess = loadSessions().find((s: {id:string}) => s.id === sessionId)
@@ -75,7 +77,7 @@ export function registerSftpHandlers(ipcMain: IpcMain, win: BrowserWindow): void
 
   ipcMain.handle('sftp:upload', async (_e, sessionId:string, localPaths:string[], remoteDir:string) => {
     if (!ssh2) throw new Error('ssh2 not available')
-    if (!UUID_RE.test(sessionId)) throw new Error('Invalid session ID')
+    if (!SESSION_ID_RE.test(sessionId)) throw new Error('Invalid session ID')
     if (!Array.isArray(localPaths)||!localPaths.length) throw new Error('No files')
     if (!remoteDir.startsWith('/') && !remoteDir.startsWith('~')) throw new Error('Remote dir must be absolute or start with ~')
     // Validate local paths are within HOME

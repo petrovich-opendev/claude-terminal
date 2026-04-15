@@ -172,10 +172,15 @@ export default function SSHPanel() {
     const list = await window.electronAPI.sshImportConfig().catch(() => [] as unknown[])
     const remote = list as SSHSession[]
     let imported = 0
-    remote.forEach((s) => {
+    for (const s of remote) {
       const exists = sessions.find((x) => x.id === s.id || (x.host === s.host && x.user === s.user))
-      if (!exists) { addSession({ ...s, status: 'idle' }); imported++ }
-    })
+      if (!exists) {
+        // Save to sessions.json so SFTP and other IPC handlers can find it
+        await window.electronAPI.sshSave(s).catch(() => {})
+        addSession({ ...s, status: 'idle' })
+        imported++
+      }
+    }
     const msg = imported > 0 ? `Imported ${imported} session${imported > 1 ? 's' : ''}` : 'No new sessions found'
     setImportMsg(msg)
     setTimeout(() => setImportMsg(null), 3000)
