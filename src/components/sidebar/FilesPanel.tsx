@@ -150,6 +150,7 @@ export default function FilesPanel({ onFileSelect }: Props) {
 
   const listDir = useCallback((dir: string): Promise<Array<{name:string;path:string;isDirectory:boolean;extension?:string}>> => {
     if (isSSH && activeSessionId) {
+      console.log('[FilesPanel] sftpList call — sessionId:', JSON.stringify(activeSessionId), 'dir:', JSON.stringify(dir))
       return window.electronAPI.sftpList(activeSessionId, dir)
     }
     return window.electronAPI.fsList(dir)
