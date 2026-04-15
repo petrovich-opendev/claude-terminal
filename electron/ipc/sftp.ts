@@ -44,7 +44,11 @@ async function buildConnectOpts(sess: {
 export function registerSftpHandlers(ipcMain: IpcMain, win: BrowserWindow): void {
   ipcMain.handle('sftp:list', async (_e, sessionId: string, remotePath: string) => {
     if (!ssh2) throw new Error('ssh2 not available')
-    if (!SESSION_ID_RE.test(sessionId)) throw new Error('Invalid session ID')
+    console.log('[sftp:list] sessionId=', JSON.stringify(sessionId), 'type=', typeof sessionId, 'remotePath=', JSON.stringify(remotePath))
+    if (!SESSION_ID_RE.test(sessionId)) {
+      console.error('[sftp:list] INVALID SESSION ID — value:', JSON.stringify(sessionId))
+      throw new Error(`Invalid session ID: ${JSON.stringify(sessionId)}`)
+    }
     if (typeof remotePath !== 'string' || !remotePath) throw new Error('Path must be a non-empty string')
     validateRemotePath(remotePath)
     const sess = loadSessions().find((s: {id:string}) => s.id === sessionId)
