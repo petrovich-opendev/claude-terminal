@@ -24,6 +24,7 @@
 | B-9 | `src/components/TerminalPane.tsx` | — | **Scroll колесо мыши писало историю команд** — wheel события уходили в PTY как ESC[A/B, bash интерпретировал как ↑↓. Клик не фокусировал xterm → мышь не работала. **ИСПРАВЛЕНО** (commit 0c4fb66) | FIXED |
 | B-3 | `electron/ipc/sftp.ts` | 103 | **Upload Promise зависает** — счётчик `done` инкрементируется только в `ws.on('close')`. Если SSH-стрим закрывается с ошибкой без события `close` — Promise остаётся pending навсегда | OPEN |
 | B-4 | `electron/ipc/ssh.ts` | 6 | `JSON.parse` без try-catch — крэш IPC handler если `sessions.json` повреждён | OPEN |
+| B-10 | `electron/ipc/sftp.ts` + `SSHPanel.tsx` | 45, handleImport | **`sftp:list` → Invalid session ID** — две причины: (1) UUID_RE отклонял legacy IDs (до commit 7869ca4); (2) импортированные сессии не сохранялись в sessions.json. **ИСПРАВЛЕНО** (commit 75728bb) | FIXED |
 | B-5 | `src/components/StatusBar.tsx` | 14-16 | **Неверный расчёт context** — считается `(inputTokens + outputTokens) / 200000`. SPEC требует только `inputTokens` для context usage | OPEN |
 | B-6 | `electron/ipc/sftp.ts` | 99 | `fs.statSync(lp)` без try-catch — крэш если файл удалён между проверкой и загрузкой | OPEN |
 | B-7 | `src/components/Settings.tsx` | 28 | **Накопление Escape-listener** — `window.addEventListener('keydown')` добавляется при каждом изменении `onClose`, старый не удаляется корректно. Множественные вызовы onClose | OPEN |
