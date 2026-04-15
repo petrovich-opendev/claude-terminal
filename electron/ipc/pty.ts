@@ -36,7 +36,8 @@ function defaultShell(): string {
 export function registerPtyHandlers(ipcMain: IpcMain, win: BrowserWindow): void {
   ipcMain.handle('pty:create', async (_e, opts: { cols: number; rows: number; cwd: string; cmd: string; args: string[] }) => {
     if (!pty) throw new Error('node-pty not available')
-    const cmd = opts.cmd === '/bin/zsh' || opts.cmd === '~' ? defaultShell() : validateCmd(opts.cmd)
+    const resolvedCmd = (opts.cmd === '/bin/zsh' || opts.cmd === '~') ? defaultShell() : opts.cmd
+    const cmd = validateCmd(resolvedCmd)
     const cwd = resolveCwd(opts.cwd ?? '~')
     const id = String(_id++)
     const proc = pty.spawn(cmd, opts.args ?? [], {

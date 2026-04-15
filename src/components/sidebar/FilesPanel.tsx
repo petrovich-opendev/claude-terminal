@@ -63,10 +63,22 @@ function parentPath(p: string, isRemote: boolean): string {
   return idx > 0 ? p.slice(0, idx) : '/'
 }
 
+interface CtxMenuState { x: number; y: number; node: FsNode }
+
 export default function FilesPanel({ onFileSelect }: Props) {
   const cwd   = useTerminalStore(s => s.cwd)
   const ptyId = useActivePtyId()
-  const { sessions, activeSessionId } = useSessionsStore()
+  const { sessions, activeSessionId, setActive } = useSessionsStore()
+
+  const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null)
+
+  useEffect(() => {
+    if (!ctxMenu) return
+    const close = () => setCtxMenu(null)
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctxMenu !== null])
   const activeSession = activeSessionId ? sessions.find(s => s.id === activeSessionId) ?? null : null
   const isSSH = activeSession !== null
 
@@ -150,11 +162,18 @@ export default function FilesPanel({ onFileSelect }: Props) {
 
   const listDir = useCallback((dir: string): Promise<Array<{name:string;path:string;isDirectory:boolean;extension?:string}>> => {
     if (isSSH && activeSessionId) {
-      console.log('[FilesPanel] sftpList call — sessionId:', JSON.stringify(activeSessionId), 'dir:', JSON.stringify(dir))
       return window.electronAPI.sftpList(activeSessionId, dir)
+        .catch((err: Error) => {
+          // If SFTP fails due to session issues — reset active session so user
+          // is not stuck, and re-throw with the actual session ID in the message
+          if (err.message.includes('Invalid session ID') || err.message.includes('Session not found')) {
+            setActive(null)
+          }
+          throw new Error(`SFTP error (sessionId=${JSON.stringify(activeSessionId)}): ${err.message}`)
+        })
     }
     return window.electronAPI.fsList(dir)
-  }, [isSSH, activeSessionId])
+  }, [isSSH, activeSessionId, setActive])
 
   useEffect(() => {
     setLoading(true)
@@ -302,7 +321,24 @@ export default function FilesPanel({ onFileSelect }: Props) {
           onFileSelect={handleFileSelect}
           onToggleDir={toggleDir}
           onExplain={explainFile}
+          onContextMenu={(x, y, node) => setCtxMenu({ x, y, node })}
         />
+      )}
+      {ctxMenu && (
+        <div
+          style={{ position:'fixed', top: ctxMenu.y, left: ctxMenu.x, zIndex:1000,
+            background:'#161622', border:'1px solid #2a2a40', borderRadius:6,
+            boxShadow:'0 4px 20px rgba(0,0,0,.7)', padding:'4px 0', minWidth:160 }}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          {!ctxMenu.node.isDirectory && (
+            <CtxItem onClick={() => { handleFileSelect(ctxMenu.node); setCtxMenu(null) }}>Open</CtxItem>
+          )}
+          <CtxItem onClick={() => { navigator.clipboard.writeText(ctxMenu.node.path).catch(()=>{}); setCtxMenu(null) }}>Copy path</CtxItem>
+          {!ctxMenu.node.isDirectory && ptyId && (
+            <CtxItem onClick={() => { explainFile(ctxMenu.node); setCtxMenu(null) }}>Ask Claude</CtxItem>
+          )}
+        </div>
       )}
     </div>
   )
@@ -315,9 +351,10 @@ interface NodeListProps {
   onFileSelect: (node: FsNode) => void
   onToggleDir: (node: FsNode) => void
   onExplain: (node: FsNode) => void
+  onContextMenu: (x: number, y: number, node: FsNode) => void
 }
 
-function NodeList({ nodes, depth, isSSH, onFileSelect, onToggleDir, onExplain }: NodeListProps) {
+function NodeList({ nodes, depth, isSSH, onFileSelect, onToggleDir, onExplain, onContextMenu }: NodeListProps) {
   return (
     <>
       {nodes.map((node) => (
@@ -329,6 +366,7 @@ function NodeList({ nodes, depth, isSSH, onFileSelect, onToggleDir, onExplain }:
             onFileSelect={onFileSelect}
             onToggleDir={onToggleDir}
             onExplain={onExplain}
+            onContextMenu={onContextMenu}
           />
           {node.expanded && node.children && (
             <NodeList
@@ -338,6 +376,7 @@ function NodeList({ nodes, depth, isSSH, onFileSelect, onToggleDir, onExplain }:
               onFileSelect={onFileSelect}
               onToggleDir={onToggleDir}
               onExplain={onExplain}
+              onContextMenu={onContextMenu}
             />
           )}
         </div>
@@ -353,9 +392,10 @@ interface NodeRowProps {
   onFileSelect: (node: FsNode) => void
   onToggleDir: (node: FsNode) => void
   onExplain: (node: FsNode) => void
+  onContextMenu: (x: number, y: number, node: FsNode) => void
 }
 
-function NodeRow({ node, depth, isSSH, onFileSelect, onToggleDir, onExplain }: NodeRowProps) {
+function NodeRow({ node, depth, isSSH, onFileSelect, onToggleDir, onExplain, onContextMenu }: NodeRowProps) {
   const [hovered, setHovered] = useState(false)
 
   const handleClick = () => {
@@ -368,7 +408,7 @@ function NodeRow({ node, depth, isSSH, onFileSelect, onToggleDir, onExplain }: N
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
-    if (!node.isDirectory) onExplain(node)
+    onContextMenu(e.clientX, e.clientY, node)
   }
 
   return (
@@ -392,6 +432,19 @@ function NodeRow({ node, depth, isSSH, onFileSelect, onToggleDir, onExplain }: N
           ?
         </button>
       )}
+    </div>
+  )
+}
+
+function CtxItem({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{ padding:'6px 16px', fontSize:12, color:'#ccc', cursor:'pointer', whiteSpace:'nowrap' }}
+      onMouseEnter={e => (e.currentTarget.style.background='#1e2a3a')}
+      onMouseLeave={e => (e.currentTarget.style.background='transparent')}
+    >
+      {children}
     </div>
   )
 }

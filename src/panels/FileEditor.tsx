@@ -123,7 +123,7 @@ export default function FileEditor({ filePath, onClose }: Props) {
     <div
       data-testid="file-editor"
       style={{
-        width: 'var(--right-panel-width, 480px)',
+        width: 'var(--right-panel-width, 360px)',
         background: 'var(--p1, #1e1e1e)',
         borderLeft: '1px solid var(--b1, #333)',
         flexShrink: 0,

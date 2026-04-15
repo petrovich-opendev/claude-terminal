@@ -2,6 +2,7 @@ import {useCostStore} from '@/store/cost'
 import {useTerminalStore} from '@/store/terminal'
 import {useActiveTabStatus} from '@/store/tabs'
 import {useSessionsStore} from '@/store/sessions'
+import {useConfigStore} from '@/store/config'
 import {MODEL_PRICING} from '@/lib/pricing'
 import styles from './StatusBar.module.css'
 export default function StatusBar(){
@@ -12,8 +13,10 @@ export default function StatusBar(){
   const activeId=useSessionsStore(s=>s.activeSessionId)
   const session=sessions.find(s=>s.id===activeId)
   const pricing=cost?MODEL_PRICING[cost.model]:null
-  const ctx=cost?Math.round((cost.inputTokens+cost.outputTokens)/200000*100):0
+  const ctx=cost?Math.round(cost.inputTokens/200000*100):0
   const ctxColor=ctx>80?'var(--red)':ctx>50?'var(--amber)':'var(--green)'
+  const { costAlertUSD, contextAlertPct } = useConfigStore()
+  const showCompact = (ctx >= contextAlertPct) || (cost?.estimatedUSD ?? 0) >= costAlertUSD
   return(
     <div className={styles.bar}>
       <div className={styles.left}>
@@ -23,6 +26,7 @@ export default function StatusBar(){
         {upload&&<span className={styles.upload}>⬆ {upload.file} {upload.percent}%</span>}
       </div>
       <div className={styles.right}>
+        {showCompact && <span style={{color:'#f59e0b', fontSize:10, fontWeight:600, marginRight:6}}>⚠ Compact</span>}
         {cost&&<>
           <span className={styles.text} style={{color:ctxColor}}>ctx {ctx}%</span>
           <span className={styles.sep}>·</span>

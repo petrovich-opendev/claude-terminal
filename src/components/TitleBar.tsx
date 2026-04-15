@@ -34,6 +34,10 @@ export default function TitleBar({ onOpenSettings }: Props) {
         <span className={styles.brand}>agentdata.pro</span>
         {session && <>
           <span className={styles.dot}>·</span>
+          <span style={{
+            display: 'inline-block', width: 7, height: 7, borderRadius: '50%', marginRight: 4, verticalAlign: 'middle',
+            background: session.status === 'connected' ? '#22c55e' : session.status === 'connecting' ? '#f59e0b' : session.status === 'error' ? '#ef4444' : '#555'
+          }} title={session.status} />
           <span className={styles.session}>{session.name}</span>
         </>}
       </div>

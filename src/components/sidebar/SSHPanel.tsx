@@ -4,6 +4,20 @@ import { useSessionsStore } from '@/store/sessions'
 import { useTabsStore } from '@/store/tabs'
 import styles from './SSHPanel.module.css'
 
+/** Accepts FQDN/IPv4, bare IPv6 (e.g. "::1"), or bracketed IPv6 (e.g. "[::1]") */
+function isValidHost(h: string): boolean {
+  if (/^[a-zA-Z0-9._-]+$/.test(h)) return true
+  if (/^[a-fA-F0-9:]+$/.test(h) && h.includes(':')) return true
+  if (/^\[[a-fA-F0-9:]+\]$/.test(h)) return true
+  return false
+}
+
+/** Bracket bare IPv6 addresses for use in SSH target strings (RFC 2732) */
+function formatSshHost(h: string): string {
+  if (/^[a-fA-F0-9:]+$/.test(h) && h.includes(':')) return `[${h}]`
+  return h
+}
+
 const EMPTY_FORM: Omit<SSHSession, 'id' | 'status' | 'lastConnected'> = {
   name: '',
   group: 'Default',
@@ -29,6 +43,8 @@ function StatusDot({ status }: { status: SSHSession['status'] }) {
   return <span className={`${styles.dot} ${styles['dot_' + status]}`} title={status} />
 }
 
+interface SshCtxMenu { x: number; y: number; session: SSHSession }
+
 export default function SSHPanel() {
   const { sessions, addSession, updateSession, removeSession, setActive } = useSessionsStore()
   const updateTab = useTabsStore(s => s.updateTab)
@@ -41,6 +57,15 @@ export default function SSHPanel() {
   const [form, setForm] = useState<FormState>(toFormState())
   const [formError, setFormError] = useState<string | null>(null)
   const [importMsg, setImportMsg] = useState<string | null>(null)
+  const [sshCtxMenu, setSshCtxMenu] = useState<SshCtxMenu | null>(null)
+
+  useEffect(() => {
+    if (!sshCtxMenu) return
+    const close = () => setSshCtxMenu(null)
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sshCtxMenu !== null])
 
   // Load sessions from IPC on mount — merge with store
   useEffect(() => {
@@ -142,11 +167,10 @@ export default function SSHPanel() {
   }
 
   function handleConnect(s: SSHSession) {
-    // Validate host/user to prevent shell injection — allow only safe characters
-    const SAFE_HOST = /^[a-zA-Z0-9._-]+$/
-    const SAFE_USER = /^[a-zA-Z0-9._-]+$/
-    if (!SAFE_HOST.test(s.host)) { window.alert('Invalid hostname characters'); return }
-    if (!SAFE_USER.test(s.user)) { window.alert('Invalid username characters'); return }
+    // Validate host/user to prevent shell injection.
+    // Accepts: FQDN/IPv4 (alphanumeric + . _ -), bare IPv6 (hex + colons), bracketed IPv6.
+    if (!isValidHost(s.host)) { window.alert('Invalid hostname characters'); return }
+    if (!/^[a-zA-Z0-9._-]+$/.test(s.user)) { window.alert('Invalid username characters'); return }
     const port = s.port ?? 22
     if (port < 1 || port > 65535) { window.alert('Invalid port number'); return }
 
@@ -157,12 +181,14 @@ export default function SSHPanel() {
     const newTabId = addTab({ title: s.name })
     const tmuxName = `ct-${newTabId.slice(0, 8)}`
     const portFlag = port !== 22 ? ` -p ${port}` : ''
+    // Bare IPv6 must be bracketed in SSH target (RFC 2732)
+    const sshHost = formatSshHost(s.host)
     let cmd: string
     if (useTmux) {
-      cmd = `ssh -t${portFlag} ${s.user}@${s.host} "tmux new-session -A -s ${tmuxName}"\n`
+      cmd = `ssh -t${portFlag} ${s.user}@${sshHost} "tmux new-session -A -s ${tmuxName}"\n`
       updateTab(newTabId, { sshSessionId: s.id, tmuxEnabled: true, tmuxSessionName: tmuxName, pendingCmd: cmd })
     } else {
-      cmd = `ssh${portFlag} ${s.user}@${s.host}\n`
+      cmd = `ssh${portFlag} ${s.user}@${sshHost}\n`
       updateTab(newTabId, { sshSessionId: s.id, tmuxEnabled: false, pendingCmd: cmd })
     }
     updateSession(s.id, { status: 'connected' })
@@ -223,6 +249,7 @@ export default function SSHPanel() {
                     className={styles.sessionRow}
                     onMouseEnter={() => setHoverId(s.id)}
                     onMouseLeave={() => setHoverId(null)}
+                    onContextMenu={(e) => { e.preventDefault(); setSshCtxMenu({ x: e.clientX, y: e.clientY, session: s }) }}
                   >
                     <StatusDot status={s.status} />
                     <div className={styles.sessionInfo}>
@@ -286,6 +313,21 @@ export default function SSHPanel() {
       )}
 
       {/* Add/Edit Form */}
+      {sshCtxMenu && (
+        <div
+          style={{ position:'fixed', top: sshCtxMenu.y, left: sshCtxMenu.x, zIndex:1000,
+            background:'#161622', border:'1px solid #2a2a40', borderRadius:6,
+            boxShadow:'0 4px 20px rgba(0,0,0,.7)', padding:'4px 0', minWidth:160 }}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          <SshCtxItem onClick={() => { handleConnect(sshCtxMenu.session); setSshCtxMenu(null) }}>⇡ Connect</SshCtxItem>
+          <SshCtxItem onClick={() => { setEditId(sshCtxMenu.session.id); setForm(toFormState(sshCtxMenu.session)); setSshCtxMenu(null) }}>✎ Edit</SshCtxItem>
+          <SshCtxItem onClick={() => { navigator.clipboard.writeText(`${sshCtxMenu.session.user}@${sshCtxMenu.session.host}`).catch(()=>{}); setSshCtxMenu(null) }}>⎘ Copy host</SshCtxItem>
+          <div style={{ height:1, background:'#2a2a40', margin:'4px 0' }} />
+          <SshCtxItem onClick={() => { handleDelete(sshCtxMenu.session); setSshCtxMenu(null) }} color="#ef4444">✕ Delete</SshCtxItem>
+        </div>
+      )}
+
       {isEditing && (
         <div className={styles.form}>
           <div className={styles.formTitle}>{editId === '' ? 'New Session' : 'Edit Session'}</div>
@@ -340,6 +382,19 @@ export default function SSHPanel() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function SshCtxItem({ children, onClick, color }: { children: React.ReactNode; onClick: () => void; color?: string }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{ padding:'6px 16px', fontSize:12, color: color ?? '#ccc', cursor:'pointer', whiteSpace:'nowrap' }}
+      onMouseEnter={e => (e.currentTarget.style.background='#1e2a3a')}
+      onMouseLeave={e => (e.currentTarget.style.background='transparent')}
+    >
+      {children}
     </div>
   )
 }

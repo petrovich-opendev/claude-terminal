@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -6,6 +6,7 @@ import { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
 import { useTabsStore } from '@/store/tabs'
 import { useConfigStore } from '@/store/config'
+import { useTerminalStore } from '@/store/terminal'
 
 interface Props {
   tabId: string
@@ -17,11 +18,15 @@ export default function TerminalPane({ tabId, visible }: Props) {
   const getTab        = () => useTabsStore.getState().tabs.find(t => t.id === tabId) ?? null
   const { fontSize, fontFamily, lineHeight } = useConfigStore()
 
-  const containerRef  = useRef<HTMLDivElement>(null)
-  const xtermRef      = useRef<XTerm | null>(null)
-  const fitRef        = useRef<FitAddon | null>(null)
-  const searchRef     = useRef<SearchAddon | null>(null)
-  const ptyIdRef      = useRef<string | null>(null)
+  const containerRef    = useRef<HTMLDivElement>(null)
+  const xtermRef        = useRef<XTerm | null>(null)
+  const fitRef          = useRef<FitAddon | null>(null)
+  const searchRef       = useRef<SearchAddon | null>(null)
+  const ptyIdRef        = useRef<string | null>(null)
+  const visibleRef      = useRef(visible)
+  const searchInputRef  = useRef<HTMLInputElement>(null)
+  const [searchOpen, setSearchOpen]   = useState(false)
+  const [searchText, setSearchText]   = useState('')
 
   // ── Init xterm + PTY (once per tab) ───────────────────────────────────────
   useEffect(() => {
@@ -68,23 +73,39 @@ export default function TerminalPane({ tabId, visible }: Props) {
       e.stopPropagation()
       term.scrollLines(e.deltaY > 0 ? 3 : -3)
     }
-    containerRef.current.addEventListener('wheel', onWheel, { passive: false })
+    // capture:true — перехватываем до xterm-viewport, иначе xterm успевает
+    // отправить ESC[A/B в PTY раньше preventDefault()
+    containerRef.current.addEventListener('wheel', onWheel, { passive: false, capture: true })
 
     // Click on terminal → focus xterm so mouse selection and keyboard input work.
     const onPointerDown = () => term.focus()
     containerRef.current.addEventListener('pointerdown', onPointerDown)
 
+    // alive flag: prevents writing to a disposed terminal if component unmounts
+    // before spawnPty() Promise resolves (B-2 race condition fix)
+    let alive = true
+
+    // T-1: Register onData BEFORE spawnPty to avoid losing first bytes.
+    // ptyIdRef is null until PTY spawns, so writes are silently dropped until ready.
+    term.onData(d => {
+      if (ptyIdRef.current) window.electronAPI.ptyWrite(ptyIdRef.current, d)
+    })
+
     const spawnPty = async () => {
       const { cols, rows } = term
       try {
-        // NOTE: process.env is not available in renderer; pass ~ and let
-        // the main process resolve HOME and SHELL via its own env.
+        // U-3: Use real cwd from terminal store instead of hardcoded '~'
         const r = await window.electronAPI.ptyCreate({
           cols, rows,
-          cwd: '~',
+          cwd: useTerminalStore.getState().cwd || '~',
           cmd: '/bin/zsh',
           args: [],
         })
+        if (!alive) {
+          // Component unmounted before PTY was ready — clean up immediately
+          window.electronAPI.ptyDestroy(r.id).catch(() => {})
+          return () => {}
+        }
         ptyIdRef.current = r.id
         updateTab(tabId, { ptyId: r.id, status: 'running' })
 
@@ -97,23 +118,26 @@ export default function TerminalPane({ tabId, visible }: Props) {
         }
 
         const offData = window.electronAPI.onPtyData(r.id, d => {
-          const atBottom = term.buffer.active.viewportY + term.rows >= term.buffer.active.length - 1
+          if (!alive) return
+          // T-2: Guard against null buffer.active during rapid resize
+          const atBottom = term.buffer.active
+            ? term.buffer.active.viewportY + term.rows >= term.buffer.active.length - 1
+            : true
           term.write(d)
           if (atBottom) term.scrollToBottom()
         })
         const offExit = window.electronAPI.onPtyExit(r.id, () => {
+          if (!alive) return
           updateTab(tabId, { status: 'exited', ptyId: null })
           term.write('\r\n\x1b[90m[Process exited]\x1b[0m\r\n')
         })
 
-        term.onData(d => {
-          if (ptyIdRef.current) window.electronAPI.ptyWrite(ptyIdRef.current, d)
-        })
-
         return () => { offData(); offExit() }
       } catch (e) {
-        updateTab(tabId, { status: 'exited' })
-        term.write(`\r\n\x1b[31m[Failed to start terminal: ${(e as Error).message}]\x1b[0m\r\n`)
+        if (alive) {
+          updateTab(tabId, { status: 'exited' })
+          term.write(`\r\n\x1b[31m[Failed to start terminal: ${(e as Error).message}]\x1b[0m\r\n`)
+        }
         return () => {}
       }
     }
@@ -128,21 +152,9 @@ export default function TerminalPane({ tabId, visible }: Props) {
     })
     ro.observe(containerRef.current)
 
-    // Cmd+F search in terminal output
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey && e.key === 'f') {
-        e.preventDefault()
-        const query = window.prompt('Search terminal output:')
-        if (query && searchRef.current) {
-          searchRef.current.findNext(query, { caseSensitive: false })
-        }
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      containerRef.current?.removeEventListener('wheel', onWheel)
+      alive = false
+      containerRef.current?.removeEventListener('wheel', onWheel, { capture: true })
       containerRef.current?.removeEventListener('pointerdown', onPointerDown)
       ro.disconnect()
       cleanupPty.then(off => off?.())
@@ -162,6 +174,30 @@ export default function TerminalPane({ tabId, visible }: Props) {
     term.options.lineHeight = lineHeight
     fitRef.current?.fit()
   }, [fontSize, fontFamily, lineHeight])
+
+  // ── Keep visibleRef in sync ───────────────────────────────────────────────
+  useEffect(() => { visibleRef.current = visible }, [visible])
+
+  // ── Cmd+F: SearchAddon UI overlay  /  Cmd+K: clear terminal ──────────────
+  // Single listener per TerminalPane; only acts when this pane is visible.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!visibleRef.current) return
+      if (e.metaKey && e.key === 'f') {
+        e.preventDefault()
+        setSearchOpen(s => {
+          if (!s) setTimeout(() => searchInputRef.current?.focus(), 50)
+          return !s
+        })
+      }
+      if (e.metaKey && e.key === 'k') {
+        e.preventDefault()
+        xtermRef.current?.clear()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   // ── Re-fit when tab becomes visible ──────────────────────────────────────
   useEffect(() => {
@@ -187,6 +223,32 @@ export default function TerminalPane({ tabId, visible }: Props) {
         ref={containerRef}
         style={{ width: '100%', height: '100%' }}
       />
+      {/* Search overlay — Cmd+F (U-1) */}
+      {searchOpen && (
+        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, background: '#161622', border: '1px solid #2a2a40', borderRadius: 5, padding: '5px 8px', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 4px 16px rgba(0,0,0,0.5)' }}>
+          <input
+            ref={searchInputRef}
+            value={searchText}
+            onChange={e => {
+              setSearchText(e.target.value)
+              if (e.target.value) searchRef.current?.findNext(e.target.value, { caseSensitive: false })
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.shiftKey ? searchRef.current?.findPrevious(searchText, { caseSensitive: false }) : searchRef.current?.findNext(searchText, { caseSensitive: false }) }
+              if (e.key === 'Escape') { setSearchOpen(false); setSearchText('') }
+            }}
+            placeholder="Search…"
+            style={{ background: '#0d0d14', border: '1px solid #2a2a40', color: '#ddd', padding: '3px 7px', fontSize: 12, borderRadius: 3, outline: 'none', width: 180 }}
+          />
+          <button onClick={() => searchRef.current?.findPrevious(searchText, { caseSensitive: false })} style={S.srchBtn} title="Previous (⇧Enter)">↑</button>
+          <button onClick={() => searchRef.current?.findNext(searchText, { caseSensitive: false })} style={S.srchBtn} title="Next (Enter)">↓</button>
+          <button onClick={() => { setSearchOpen(false); setSearchText('') }} style={{ ...S.srchBtn, color: '#555' }} title="Close (Esc)">✕</button>
+        </div>
+      )}
     </div>
   )
+}
+
+const S = {
+  srchBtn: { padding: '2px 7px', fontSize: 12, borderRadius: 3, border: '1px solid #2a2a40', background: '#0d0d14', color: '#8090b0', cursor: 'pointer' } as React.CSSProperties,
 }

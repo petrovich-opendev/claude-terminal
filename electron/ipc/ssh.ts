@@ -3,7 +3,16 @@ import path from 'path'
 import os from 'os'
 import fs from 'fs'
 const SESS_FILE = () => path.join(os.homedir(),'.config','claude-terminal','sessions.json')
-function readSessions() { const f=SESS_FILE(); return fs.existsSync(f)?JSON.parse(fs.readFileSync(f,'utf-8')):[] }
+/** Accepts FQDN/IPv4 (alphanumeric + . _ -), bare IPv6 (hex + colons), or bracketed IPv6 */
+function isValidHost(h: string): boolean {
+  if (/^[a-zA-Z0-9._-]+$/.test(h)) return true
+  // IPv6 bare, e.g. "::1" or "2001:db8::1"
+  if (/^[a-fA-F0-9:]+$/.test(h) && h.includes(':')) return true
+  // IPv6 bracketed, e.g. "[::1]"
+  if (/^\[[a-fA-F0-9:]+\]$/.test(h)) return true
+  return false
+}
+function readSessions() { const f=SESS_FILE(); if(!fs.existsSync(f))return []; try{return JSON.parse(fs.readFileSync(f,'utf-8'))}catch{return []} }
 function writeSessions(s: unknown[]) { const d=path.dirname(SESS_FILE()); if(!fs.existsSync(d))fs.mkdirSync(d,{recursive:true,mode:0o700}); fs.writeFileSync(SESS_FILE(),JSON.stringify(s,null,2),{mode:0o600}) }
 export function registerSshHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('ssh:list', async () => readSessions())
@@ -11,9 +20,8 @@ export function registerSshHandlers(ipcMain: IpcMain): void {
     if (typeof session !== 'object' || !session) throw new Error('Invalid session')
     const s = session as { id: string; host: string; user: string; port?: number; authType?: string }
     if (!s.id || !s.host || !s.user) throw new Error('Missing required fields: id, host, user')
-    // Validate host and user characters to prevent injection
-    const SAFE = /^[a-zA-Z0-9._-]+$/
-    if (!SAFE.test(s.host)) throw new Error('Invalid hostname characters')
+    // Validate host and user characters to prevent injection. Supports IPv4, FQDN, and IPv6 (bare or bracketed).
+    if (!isValidHost(s.host)) throw new Error('Invalid hostname characters')
     if (!SAFE.test(s.user)) throw new Error('Invalid username characters')
     if (s.port !== undefined && (s.port < 1 || s.port > 65535)) throw new Error('Port must be 1-65535')
     // Ensure no credential fields leak into session file

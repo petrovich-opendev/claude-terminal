@@ -14,7 +14,7 @@ function isValidSessionId(id: unknown): id is string {
   return typeof id === 'string' && id.length > 0 && id.length <= 256
 }
 
-function loadSessions() { const f=path.join(os.homedir(),'.config','claude-terminal','sessions.json'); return fs.existsSync(f)?JSON.parse(fs.readFileSync(f,'utf-8')):[] }
+function loadSessions() { const f=path.join(os.homedir(),'.config','claude-terminal','sessions.json'); if(!fs.existsSync(f))return []; try{return JSON.parse(fs.readFileSync(f,'utf-8'))}catch{return []} }
 
 const SFTP_IGNORE = new Set(['.git','node_modules','__pycache__','dist','dist-electron','.vite'])
 
@@ -30,7 +30,8 @@ async function buildConnectOpts(sess: {
   authType: string; keyPath?: string; id: string
 }): Promise<Record<string, unknown>> {
   const o: Record<string, unknown> = { host: sess.host, port: sess.port || 22, username: sess.user }
-  if (sess.authType === 'key' && sess.keyPath) {
+  if (sess.authType === 'key') {
+    if (!sess.keyPath) throw new Error('SSH key path is not configured for this session')
     o.privateKey = fs.readFileSync(sess.keyPath.replace(/^~/, os.homedir()))
   } else if (sess.authType === 'password') {
     const pw = keytar ? await keytar.getPassword(KEYCHAIN_SERVICE, sess.id) : null
@@ -95,22 +96,39 @@ export function registerSftpHandlers(ipcMain: IpcMain, win: BrowserWindow): void
     if (!sess) throw new Error('Session not found')
     const opts = await buildConnectOpts(sess)
     const Ssh2Client = ssh2.Client
-    return new Promise((resolve,reject) => {
+    return new Promise((resolve, reject) => {
       const conn = new Ssh2Client()
-      conn.on('ready', () => conn.sftp((err,sftp) => {
-        if (err) { conn.end(); return reject(err) }
-        let done=0
+      // settle() ensures Promise resolves/rejects exactly once even if multiple events fire
+      let settled = false
+      const settle = (err?: Error) => {
+        if (settled) return; settled = true
+        conn.end()
+        if (err) reject(err); else resolve({ ok: true, count: localPaths.length })
+      }
+      conn.on('ready', () => conn.sftp((err, sftp) => {
+        if (err) return settle(err)
+        let completed = 0
         for (const lp of localPaths) {
-          const name=path.basename(lp), rp=path.posix.join(remoteDir,name), total=fs.statSync(lp).size; let up=0
-          const rs=fs.createReadStream(lp), ws=sftp.createWriteStream(rp)
-          rs.on('data',(chunk:string|Buffer)=>{ const len=Buffer.isBuffer(chunk)?chunk.length:Buffer.byteLength(chunk); up+=len; if(!win.isDestroyed()) win.webContents.send('sftp:progress',{file:name,percent:total>0?Math.round(up/total*100):0}) })
-          rs.on('error',(e:Error)=>{conn.end();reject(e)})
-          ws.on('close',()=>{ done++; if(done===localPaths.length){conn.end();resolve({ok:true,count:done})} })
-          ws.on('error',(e:Error)=>{conn.end();reject(e)})
+          let total: number
+          try { total = fs.statSync(lp).size } catch (e) { settle(e as Error); return }
+          const name = path.basename(lp)
+          const rp = path.posix.join(remoteDir, name)
+          let up = 0
+          const rs = fs.createReadStream(lp)
+          const ws = sftp.createWriteStream(rp)
+          rs.on('data', (chunk: string | Buffer) => {
+            const len = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk)
+            up += len
+            if (!win.isDestroyed()) win.webContents.send('sftp:progress', { file: name, percent: total > 0 ? Math.round(up / total * 100) : 0 })
+          })
+          rs.on('error', (e: Error) => settle(e))
+          ws.on('error', (e: Error) => settle(e))
+          // 'close' fires after stream finishes (success path); 'error' above handles the failure path
+          ws.on('close', () => { completed++; if (completed === localPaths.length) settle() })
           rs.pipe(ws)
         }
       }))
-      conn.on('error',(e:Error)=>reject(e))
+      conn.on('error', (e: Error) => settle(e))
       conn.connect(opts as import('ssh2').ConnectConfig)
     })
   })

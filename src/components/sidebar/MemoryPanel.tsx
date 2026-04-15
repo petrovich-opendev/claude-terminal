@@ -130,6 +130,9 @@ export default function MemoryPanel({ onFileSelect }: Props) {
             style={{ width: contextPct + '%', background: contextColor }}
           />
         </div>
+        <div style={{ fontSize:11, color:'var(--t3)', marginTop:6, textAlign:'center' }}>
+          ~{Math.max(0, Math.floor((200000 - inputTokens) / 2000))} turns remaining
+        </div>
         <button
           className={styles.compactBtn}
           onClick={handleCompact}
@@ -137,6 +140,21 @@ export default function MemoryPanel({ onFileSelect }: Props) {
           title={ptyId ? 'Run /compact in terminal' : 'No active terminal'}
         >
           Compact now
+        </button>
+      </div>
+
+      <div style={{ padding:'8px 12px', borderTop:'1px solid var(--b1)', display:'flex', flexDirection:'column', gap:4 }}>
+        <button onClick={() => onFileSelect('~/.claude/CLAUDE.md')}
+          style={{ padding:'5px 8px', fontSize:11, textAlign:'left', borderRadius:4, border:'1px solid var(--b2)', background:'transparent', color:'var(--t2)', cursor:'pointer' }}>
+          ✎ Edit global memory
+        </button>
+        <button onClick={() => onFileSelect('./CLAUDE.md')}
+          style={{ padding:'5px 8px', fontSize:11, textAlign:'left', borderRadius:4, border:'1px solid var(--b2)', background:'transparent', color:'var(--t2)', cursor:'pointer' }}>
+          ✎ Edit project memory
+        </button>
+        <button onClick={() => onFileSelect('~/.claude/commands/custom.md')}
+          style={{ padding:'5px 8px', fontSize:11, textAlign:'left', borderRadius:4, border:'1px solid var(--b2)', background:'transparent', color:'var(--t2)', cursor:'pointer' }}>
+          + New custom command
         </button>
       </div>
     </div>

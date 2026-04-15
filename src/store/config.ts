@@ -16,6 +16,10 @@ interface ConfigState {
   lineHeight: number      // 1.0–1.6
   costAlertUSD: number
   contextAlertPct: number
+  scrollback: number         // xterm scrollback lines
+  obsidianPort: number       // Obsidian MCP port
+  wordWrap: boolean          // Monaco word wrap
+  readOnlyDefault: boolean   // Monaco read-only default
 
   toggleSidebar: () => void
   setSidebarOpen: (v: boolean) => void
@@ -24,6 +28,10 @@ interface ConfigState {
   setLineHeight: (v: number) => void
   setCostAlertUSD: (v: number) => void
   setContextAlertPct: (v: number) => void
+  setScrollback: (v: number) => void
+  setObsidianPort: (v: number) => void
+  setWordWrap: (v: boolean) => void
+  setReadOnlyDefault: (v: boolean) => void
 }
 
 export const useConfigStore = create<ConfigState>()(persist(
@@ -34,6 +42,10 @@ export const useConfigStore = create<ConfigState>()(persist(
     lineHeight: 1.2,
     costAlertUSD: 0.5,
     contextAlertPct: 70,
+    scrollback: 10000,
+    obsidianPort: 22360,
+    wordWrap: false,
+    readOnlyDefault: false,
 
     toggleSidebar:      () => set(s => ({ sidebarOpen: !s.sidebarOpen })),
     setSidebarOpen:     (v) => set({ sidebarOpen: v }),
@@ -42,6 +54,10 @@ export const useConfigStore = create<ConfigState>()(persist(
     setLineHeight:      (v) => set({ lineHeight: Math.max(1.0, Math.min(1.6, v)) }),
     setCostAlertUSD:    (v) => set({ costAlertUSD: Math.max(0.1, v) }),
     setContextAlertPct: (v) => set({ contextAlertPct: Math.max(10, Math.min(99, v)) }),
+    setScrollback:      (v) => set({ scrollback: Math.max(1000, Math.min(100000, v)) }),
+    setObsidianPort:    (v) => set({ obsidianPort: Math.max(1, Math.min(65535, v)) }),
+    setWordWrap:        (v) => set({ wordWrap: v }),
+    setReadOnlyDefault: (v) => set({ readOnlyDefault: v }),
   }),
   { name: 'claude-terminal-config' }
 ))

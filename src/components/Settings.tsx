@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useConfigStore, FONT_FAMILIES } from '@/store/config'
 import styles from './Settings.module.css'
 
@@ -17,17 +17,22 @@ const FONT_LABELS: Record<string, string> = {
 export default function Settings({ onClose }: Props) {
   const cfg = useConfigStore()
 
+  // Keep a ref to the latest onClose so the listener never accumulates
+  // (single listener registered once on mount, always calls the current callback)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose })
+
   // Cmd+, or Escape → close
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || (e.key === ',' && e.metaKey)) {
         e.preventDefault()
-        onClose()
+        onCloseRef.current()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, []) // mount/unmount only — guaranteed single listener
 
   return (
     <div className={styles.overlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -116,6 +121,54 @@ export default function Settings({ onClose }: Props) {
             <div className={styles.rangeTicks}>
               <span>10%</span><span>55%</span><span>99%</span>
             </div>
+          </section>
+
+          {/* Advanced section */}
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>Advanced</h3>
+
+            <label className={styles.label}>
+              Terminal scrollback
+              <span className={styles.value}>{cfg.scrollback.toLocaleString()} lines</span>
+            </label>
+            <input
+              type="range" min={1000} max={50000} step={1000}
+              value={cfg.scrollback}
+              onChange={e => cfg.setScrollback(Number(e.target.value))}
+              className={styles.range}
+            />
+            <div className={styles.rangeTicks}>
+              <span>1 000</span><span>25 000</span><span>50 000</span>
+            </div>
+
+            <label className={styles.label}>
+              Obsidian MCP port
+              <span className={styles.value}>{cfg.obsidianPort}</span>
+            </label>
+            <input
+              type="number" min={1} max={65535}
+              value={cfg.obsidianPort}
+              onChange={e => cfg.setObsidianPort(Number(e.target.value))}
+              className={styles.select}
+            />
+
+            <label className={styles.label} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+              <input
+                type="checkbox"
+                checked={cfg.wordWrap}
+                onChange={e => cfg.setWordWrap(e.target.checked)}
+              />
+              Editor word wrap
+            </label>
+
+            <label className={styles.label} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+              <input
+                type="checkbox"
+                checked={cfg.readOnlyDefault}
+                onChange={e => cfg.setReadOnlyDefault(e.target.checked)}
+              />
+              Open files read-only by default
+            </label>
           </section>
 
           {/* Preview */}
