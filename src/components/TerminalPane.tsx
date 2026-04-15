@@ -149,12 +149,17 @@ export default function TerminalPane({ tabId, visible }: Props) {
 
         const offData = window.electronAPI.onPtyData(r.id, d => {
           if (!alive) return
-          // B-11: Only auto-scroll to bottom if user hasn't scrolled up.
-          // Previously, atBottom was checked before write() — but write() itself
-          // moves the viewport, making atBottom almost always true. This defeated
-          // any user attempt to scroll up and read history.
+          // B-11 follow-up: term.write() internally tracks the cursor and scrolls
+          // the viewport to follow it — this overrides any manual scrollTop we set.
+          // Fix: save scrollTop BEFORE write(), restore it AFTER if user scrolled up.
+          const viewport = container.querySelector('.xterm-viewport') as HTMLElement | null
+          const savedTop = userScrolledUp ? (viewport?.scrollTop ?? null) : null
           term.write(d)
-          if (!userScrolledUp) term.scrollToBottom()
+          if (savedTop !== null && viewport) {
+            viewport.scrollTop = savedTop
+          } else if (!userScrolledUp) {
+            term.scrollToBottom()
+          }
         })
         const offExit = window.electronAPI.onPtyExit(r.id, () => {
           if (!alive) return
