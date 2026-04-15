@@ -8,6 +8,7 @@ export interface TerminalTab {
   tmuxEnabled: boolean
   tmuxSessionName: string | null   // e.g. "ct-abc123"
   status: 'idle' | 'running' | 'exited'
+  pendingCmd: string | null        // written to PTY once it starts, then cleared
 }
 
 interface TabsState {
@@ -31,6 +32,7 @@ function makeTab(override: Partial<TerminalTab> = {}): TerminalTab {
     tmuxEnabled: false,
     tmuxSessionName: `ct-${shortId}`,
     status: 'idle',
+    pendingCmd: null,
     ...override,
   }
 }

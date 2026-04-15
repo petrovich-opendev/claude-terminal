@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { SSHSession } from '@/lib/models'
 import { useSessionsStore } from '@/store/sessions'
-import { useActivePtyId, useTabsStore } from '@/store/tabs'
+import { useTabsStore } from '@/store/tabs'
 import styles from './SSHPanel.module.css'
 
 const EMPTY_FORM: Omit<SSHSession, 'id' | 'status' | 'lastConnected'> = {
@@ -31,9 +31,8 @@ function StatusDot({ status }: { status: SSHSession['status'] }) {
 
 export default function SSHPanel() {
   const { sessions, addSession, updateSession, removeSession, setActive } = useSessionsStore()
-  const ptyId = useActivePtyId()
   const updateTab = useTabsStore(s => s.updateTab)
-  const activeTabId = useTabsStore(s => s.activeTabId)
+  const addTab    = useTabsStore(s => s.addTab)
   const [useTmux, setUseTmux] = useState(true)
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -142,8 +141,7 @@ export default function SSHPanel() {
     removeSession(s.id)
   }
 
-  async function handleConnect(s: SSHSession) {
-    if (!ptyId || !activeTabId) return
+  function handleConnect(s: SSHSession) {
     // Validate host/user to prevent shell injection — allow only safe characters
     const SAFE_HOST = /^[a-zA-Z0-9._-]+$/
     const SAFE_USER = /^[a-zA-Z0-9._-]+$/
@@ -154,19 +152,19 @@ export default function SSHPanel() {
 
     updateSession(s.id, { status: 'connecting' })
     setActive(s.id)
-    const tabId = activeTabId
-    const tmuxName = `ct-${tabId.slice(0, 8)}`
-    let cmd: string
+
+    // Always open a new tab — never inject SSH into an existing session
+    const newTabId = addTab({ title: s.name })
+    const tmuxName = `ct-${newTabId.slice(0, 8)}`
     const portFlag = port !== 22 ? ` -p ${port}` : ''
+    let cmd: string
     if (useTmux) {
-      // SSH + tmux: persistent session that survives app close
       cmd = `ssh -t${portFlag} ${s.user}@${s.host} "tmux new-session -A -s ${tmuxName}"\n`
-      updateTab(tabId, { title: s.name, sshSessionId: s.id, tmuxEnabled: true, tmuxSessionName: tmuxName })
+      updateTab(newTabId, { sshSessionId: s.id, tmuxEnabled: true, tmuxSessionName: tmuxName, pendingCmd: cmd })
     } else {
       cmd = `ssh${portFlag} ${s.user}@${s.host}\n`
-      updateTab(tabId, { title: s.name, sshSessionId: s.id, tmuxEnabled: false })
+      updateTab(newTabId, { sshSessionId: s.id, tmuxEnabled: false, pendingCmd: cmd })
     }
-    await window.electronAPI.ptyWrite(ptyId, cmd).catch(() => {})
     updateSession(s.id, { status: 'connected' })
   }
 

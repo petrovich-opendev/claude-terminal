@@ -14,6 +14,7 @@ interface Props {
 
 export default function TerminalPane({ tabId, visible }: Props) {
   const updateTab     = useTabsStore(s => s.updateTab)
+  const getTab        = () => useTabsStore.getState().tabs.find(t => t.id === tabId) ?? null
   const { fontSize, fontFamily, lineHeight } = useConfigStore()
 
   const containerRef  = useRef<HTMLDivElement>(null)
@@ -73,6 +74,14 @@ export default function TerminalPane({ tabId, visible }: Props) {
         })
         ptyIdRef.current = r.id
         updateTab(tabId, { ptyId: r.id, status: 'running' })
+
+        // Execute pending SSH connect command if this tab was opened for a session
+        const pendingCmd = getTab()?.pendingCmd
+        if (pendingCmd) {
+          updateTab(tabId, { pendingCmd: null })
+          // Small delay so the shell prompt is ready before injecting
+          setTimeout(() => window.electronAPI.ptyWrite(r.id, pendingCmd).catch(() => {}), 300)
+        }
 
         const offData = window.electronAPI.onPtyData(r.id, d => {
           const atBottom = term.buffer.active.viewportY + term.rows >= term.buffer.active.length - 1
