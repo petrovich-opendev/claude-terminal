@@ -169,7 +169,7 @@ export default function TerminalPane({ tabId, visible }: Props) {
     setUploadProgress({ file: files[0], percent: 0 })
     try {
       await window.electronAPI.sftpUpload(activeSessionId, files, '~')
-    } catch (err) {
+    } catch (_err) {
       setTimeout(() => setUploadProgress(null), 4000)
     } finally {
       setTimeout(() => setUploadProgress(null), 2000)
