@@ -149,12 +149,15 @@ export default function TerminalPane({ tabId, visible }: Props) {
   // ── Re-fit when tab becomes visible ──────────────────────────────────────
   useEffect(() => {
     if (visible) {
+      // Double rAF: first frame applies display:flex, second frame has final layout dimensions
       requestAnimationFrame(() => {
-        fitRef.current?.fit()
-        if (ptyIdRef.current) {
-          const term = xtermRef.current
-          if (term) window.electronAPI.ptyResize(ptyIdRef.current, term.cols, term.rows).catch(() => {})
-        }
+        requestAnimationFrame(() => {
+          fitRef.current?.fit()
+          if (ptyIdRef.current) {
+            const term = xtermRef.current
+            if (term) window.electronAPI.ptyResize(ptyIdRef.current, term.cols, term.rows).catch(() => {})
+          }
+        })
       })
     }
   }, [visible])
