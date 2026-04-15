@@ -21,6 +21,7 @@
 |---|---|---|---|---|
 | B-1 | `electron/ipc/config.ts` | 5 | `app.getPath('home')` вызывался на уровне модуля до `app.whenReady()` — крэш при инициализации. **ИСПРАВЛЕНО** заменой на `os.homedir()` (commit 1737b36) | FIXED |
 | B-2 | `src/components/TerminalPane.tsx` | 108,133 | **Race condition при размонтировании** — `spawnPty()` возвращает `Promise<cleanup>`, cleanup вызывает `.then()` в React-деструкторе. Если компонент размонтируется раньше resolve — слушатели `pty:data`/`pty:exit` не отписываются, утечка памяти | OPEN |
+| B-9 | `src/components/TerminalPane.tsx` | — | **Scroll колесо мыши писало историю команд** — wheel события уходили в PTY как ESC[A/B, bash интерпретировал как ↑↓. Клик не фокусировал xterm → мышь не работала. **ИСПРАВЛЕНО** (commit 0c4fb66) | FIXED |
 | B-3 | `electron/ipc/sftp.ts` | 103 | **Upload Promise зависает** — счётчик `done` инкрементируется только в `ws.on('close')`. Если SSH-стрим закрывается с ошибкой без события `close` — Promise остаётся pending навсегда | OPEN |
 | B-4 | `electron/ipc/ssh.ts` | 6 | `JSON.parse` без try-catch — крэш IPC handler если `sessions.json` повреждён | OPEN |
 | B-5 | `src/components/StatusBar.tsx` | 14-16 | **Неверный расчёт context** — считается `(inputTokens + outputTokens) / 200000`. SPEC требует только `inputTokens` для context usage | OPEN |
