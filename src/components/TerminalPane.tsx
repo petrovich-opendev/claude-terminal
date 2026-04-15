@@ -79,8 +79,9 @@ export default function TerminalPane({ tabId, visible }: Props) {
         updateTab(tabId, { ptyId: r.id, status: 'running' })
 
         const offData = window.electronAPI.onPtyData(r.id, d => {
+          const atBottom = term.buffer.active.viewportY + term.rows >= term.buffer.active.length - 1
           term.write(d)
-          term.scrollToBottom()
+          if (atBottom) term.scrollToBottom()
         })
         const offExit = window.electronAPI.onPtyExit(r.id, () => {
           updateTab(tabId, { status: 'exited', ptyId: null })
