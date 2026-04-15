@@ -18,12 +18,6 @@ export default function TitleBar({ onOpenSettings }: Props) {
 
   return (
     <div className={styles.bar}>
-      <div className={styles.lights}>
-        <span className={`${styles.tl} ${styles.r}`}/>
-        <span className={`${styles.tl} ${styles.y}`}/>
-        <span className={`${styles.tl} ${styles.g}`}/>
-      </div>
-
       <button
         className={styles.iconBtn}
         onClick={toggleSidebar}
