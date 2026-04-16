@@ -38,13 +38,22 @@ function randomLine(i: number): string {
   return `[${i.toString().padStart(5, '0')}] ${noise}  ${'█'.repeat((i % 40) + 1)}`
 }
 
+/** Минимальный доступ к ядру xterm для `hasScrollback` (публичный API это не отдаёт). */
+type XtermCoreNormal = {
+  _core?: {
+    buffers?: {
+      normal?: { hasScrollback: boolean }
+    }
+  }
+}
+
 /**
  * В типах `@xterm/xterm` у `term.buffer` нет `hasScrollback` — в лабе берём то же, что внутри xterm
  * (`Terminal.ts` ~808): флаг на **нормальном** буфере ядра. Fallback: длина буфера > числа строк окна.
  */
 function readHasScrollback(term: XTerm): boolean {
   try {
-    const normal = (term as unknown as { _core?: { buffers?: { normal?: { hasScrollback: boolean } } } } })._core?.buffers?.normal
+    const normal = (term as unknown as XtermCoreNormal)._core?.buffers?.normal
     if (normal && typeof normal.hasScrollback === 'boolean') {
       return normal.hasScrollback
     }
