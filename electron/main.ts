@@ -14,6 +14,8 @@ import { registerFsHandlers } from './ipc/fs'
 import { registerSftpHandlers } from './ipc/sftp'
 
 const isDev = process.env.NODE_ENV === 'development'
+/** Лаборатория скролла: то же окно Electron + preload, без основного UI (см. `npm run electron:scroll-lab`). */
+const scrollLabMode = process.env.SCROLL_LAB === '1'
 let mainWin: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
@@ -113,10 +115,11 @@ function createWindow(): BrowserWindow {
   })
 
   if (isDev) {
-    win.loadURL('http://localhost:5173')
-    win.webContents.openDevTools()
+    const devUrl = scrollLabMode ? 'http://localhost:5173/scroll-lab.html' : 'http://localhost:5173'
+    win.loadURL(devUrl)
   } else {
-    win.loadFile(path.join(__dirname, '../dist/index.html'))
+    const html = scrollLabMode ? 'scroll-lab.html' : 'index.html'
+    win.loadFile(path.join(__dirname, '../dist', html))
   }
 
   return win
@@ -141,7 +144,9 @@ function registerTrayHandlers(): void {
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   mainWin = createWindow()
-  createTray()
+  if (!scrollLabMode) {
+    createTray()
+  }
 
   registerPtyHandlers(ipcMain, mainWin)
   registerSshHandlers(ipcMain)

@@ -1,6 +1,6 @@
 {
   "name": "claude-terminal",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "AI-native macOS terminal for Claude Code CLI",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -12,7 +12,9 @@
     "lint": "eslint src --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\""
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "scroll-lab": "vite --open /scroll-lab.html",
+    "electron:scroll-lab": "concurrently \"vite\" \"wait-on http://localhost:5173 && NODE_ENV=development SCROLL_LAB=1 electron .\""
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",

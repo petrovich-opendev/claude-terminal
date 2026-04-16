@@ -77,25 +77,27 @@ export default function TerminalPane({ tabId, visible }: Props) {
       userScrolledUp = b.viewportY < b.baseY
     })
 
-    // xterm.js wheel path (Terminal.ts): if `!buffer.hasScrollback`, wheel becomes ESC[A/B
-    // → shell history. A parent `capture` listener is unreliable in Electron — the event
-    // can still hit xterm's listener on `term.element`. Use the official hook that runs
-    // *before* that branch: attachCustomWheelEventHandler returns `false` to skip xterm's
-    // wheel handling entirely; we then scroll via the public `scrollLines()` API (correct
-    // ydisp + render). Alternate buffer: return `true` so vim/less keep default behavior.
+    // xterm wheel default (Terminal.ts ~808): when `!buffer.hasScrollback`, wheel → ESC[A/B
+    // → bash history. `attachCustomWheelEventHandler` often runs too late in Electron: the
+    // inner `.xterm-viewport` target bubbles and timing can still hit the history path.
+    // Fix: capture phase on our outer `container` runs *before* xterm’s bubble listener on
+    // `.xterm`; we stopPropagation + preventDefault and scroll only via `scrollLines()`.
+    // Alternate buffer (vim/less): do not intercept — let xterm handle wheel / sequences.
     const wheelAccum: WheelPixelAccum = { px: 0 }
-    term.attachCustomWheelEventHandler(ev => {
-      if (ev.shiftKey) return true
-      if (term.buffer.active.type !== 'normal') return true
+    const onWheelCapture = (ev: WheelEvent) => {
+      if (ev.shiftKey) return
+      if (term.buffer.active.type !== 'normal') return
 
       ev.preventDefault()
+      ev.stopPropagation()
+
       const cell = Math.max(1, (term.options.fontSize ?? fontSize) * (term.options.lineHeight ?? lineHeight))
       const sens = term.options.scrollSensitivity ?? 1
       const px = wheelEventPixelDelta(ev, cell, term.rows, sens)
       const disp = accumulatePixelsToScrollLineDelta(wheelAccum, px, cell)
       if (disp !== 0) term.scrollLines(disp)
-      return false
-    })
+    }
+    container.addEventListener('wheel', onWheelCapture, { capture: true, passive: false })
 
     // Click on terminal → focus xterm so mouse selection and keyboard input work.
     const onPointerDown = () => term.focus()
@@ -185,6 +187,7 @@ export default function TerminalPane({ tabId, visible }: Props) {
     return () => {
       alive = false
       scrollSub.dispose()
+      container.removeEventListener('wheel', onWheelCapture, { capture: true } as AddEventListenerOptions)
       container?.removeEventListener('pointerdown', onPointerDown)
       ro.disconnect()
       cleanupPty.then(off => off?.())
@@ -251,7 +254,7 @@ export default function TerminalPane({ tabId, visible }: Props) {
     >
       <div
         ref={containerRef}
-        style={{ width: '100%', height: '100%', touchAction: 'pan-y' }}
+        style={{ width: '100%', height: '100%', touchAction: 'none' }}
       />
       {/* Search overlay — Cmd+F (U-1) */}
       {searchOpen && (
