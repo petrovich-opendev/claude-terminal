@@ -7,7 +7,7 @@ import '@xterm/xterm/css/xterm.css'
 import { useTabsStore } from '@/store/tabs'
 import { useConfigStore } from '@/store/config'
 import { useTerminalStore } from '@/store/terminal'
-import { accumulatePixelsToScrollLineDelta, wheelEventPixelDelta, type WheelPixelAccum } from '@/lib/wheelXtermScroll'
+import { installXtermWheelScrollFix } from '@/lib/installXtermWheelScrollFix'
 
 interface Props {
   tabId: string
@@ -24,7 +24,8 @@ export default function TerminalPane({ tabId, visible }: Props) {
   const fitRef          = useRef<FitAddon | null>(null)
   const searchRef       = useRef<SearchAddon | null>(null)
   const ptyIdRef        = useRef<string | null>(null)
-  const visibleRef      = useRef(visible)
+  const visibleRef = useRef(visible)
+  visibleRef.current = visible
   const searchInputRef  = useRef<HTMLInputElement>(null)
   const [searchOpen, setSearchOpen]   = useState(false)
   const [searchText, setSearchText]   = useState('')
@@ -77,27 +78,16 @@ export default function TerminalPane({ tabId, visible }: Props) {
       userScrolledUp = b.viewportY < b.baseY
     })
 
-    // xterm wheel default (Terminal.ts ~808): when `!buffer.hasScrollback`, wheel → ESC[A/B
-    // → bash history. `attachCustomWheelEventHandler` often runs too late in Electron: the
-    // inner `.xterm-viewport` target bubbles and timing can still hit the history path.
-    // Fix: capture phase on our outer `container` runs *before* xterm’s bubble listener on
-    // `.xterm`; we stopPropagation + preventDefault and scroll only via `scrollLines()`.
-    // Alternate buffer (vim/less): do not intercept — let xterm handle wheel / sequences.
-    const wheelAccum: WheelPixelAccum = { px: 0 }
-    const onWheelCapture = (ev: WheelEvent) => {
-      if (ev.shiftKey) return
-      if (term.buffer.active.type !== 'normal') return
-
-      ev.preventDefault()
-      ev.stopPropagation()
-
-      const cell = Math.max(1, (term.options.fontSize ?? fontSize) * (term.options.lineHeight ?? lineHeight))
-      const sens = term.options.scrollSensitivity ?? 1
-      const px = wheelEventPixelDelta(ev, cell, term.rows, sens)
-      const disp = accumulatePixelsToScrollLineDelta(wheelAccum, px, cell)
-      if (disp !== 0) term.scrollLines(disp)
-    }
-    container.addEventListener('wheel', onWheelCapture, { capture: true, passive: false })
+    const debugScroll =
+      typeof localStorage !== 'undefined' && localStorage.getItem('claude-terminal:debugScroll') === '1'
+    const disposeWheelFix = installXtermWheelScrollFix({
+      term,
+      container,
+      getCellHeightPx: () =>
+        Math.max(1, (term.options.fontSize ?? fontSize) * (term.options.lineHeight ?? lineHeight)),
+      getScrollSensitivity: () => term.options.scrollSensitivity ?? 1,
+      debugLog: debugScroll ? (msg) => console.info('[scroll]', msg) : undefined,
+    })
 
     // Click on terminal → focus xterm so mouse selection and keyboard input work.
     const onPointerDown = () => term.focus()
@@ -187,7 +177,7 @@ export default function TerminalPane({ tabId, visible }: Props) {
     return () => {
       alive = false
       scrollSub.dispose()
-      container.removeEventListener('wheel', onWheelCapture, { capture: true } as AddEventListenerOptions)
+      disposeWheelFix()
       container?.removeEventListener('pointerdown', onPointerDown)
       ro.disconnect()
       cleanupPty.then(off => off?.())
@@ -207,9 +197,6 @@ export default function TerminalPane({ tabId, visible }: Props) {
     term.options.lineHeight = lineHeight
     fitRef.current?.fit()
   }, [fontSize, fontFamily, lineHeight])
-
-  // ── Keep visibleRef in sync ───────────────────────────────────────────────
-  useEffect(() => { visibleRef.current = visible }, [visible])
 
   // ── Cmd+F: SearchAddon UI overlay  /  Cmd+K: clear terminal ──────────────
   // Single listener per TerminalPane; only acts when this pane is visible.

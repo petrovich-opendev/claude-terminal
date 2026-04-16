@@ -187,7 +187,7 @@ export default function ScrollLabApp() {
       wrap.removeChild(container)
       termRef.current = null
     }
-  }, [fixCapture, refreshStats])
+  }, [fixCapture, refreshStats, inElectron])
 
   const pump = (n: number) => {
     const term = termRef.current

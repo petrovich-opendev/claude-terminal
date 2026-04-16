@@ -38,3 +38,20 @@ export function accumulatePixelsToScrollLineDelta(
   acc.px -= lines * cellHeightPx
   return lines
 }
+
+/**
+ * Hit-test: wheel target can be an inner xterm node; `elementsFromPoint` covers
+ * edge cases where `ev.target` does not chain up to our wrapper (e.g. overlays).
+ */
+export function wheelPointerOverContainer(ev: WheelEvent, container: HTMLElement): boolean {
+  const t = ev.target as Node | null
+  if (t && container.contains(t)) return true
+  for (const n of ev.composedPath()) {
+    if (n === container) return true
+    if (n instanceof Node && container.contains(n)) return true
+  }
+  const { clientX: x, clientY: y } = ev
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return false
+  const stack = document.elementsFromPoint(x, y)
+  return stack.some(el => container.contains(el))
+}
