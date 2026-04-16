@@ -1,5 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useConfigStore, FONT_FAMILIES } from '@/store/config'
+import { DEFAULT_QUICK_COMMANDS } from '@/lib/defaultQuickCommands'
+import { parseQuickCommands } from '@/lib/parseQuickCommands'
+import { notifyQuickCommandsUpdated } from '@/lib/quickCommandsEvents'
 import styles from './Settings.module.css'
 
 interface Props {
@@ -16,6 +19,43 @@ const FONT_LABELS: Record<string, string> = {
 
 export default function Settings({ onClose }: Props) {
   const cfg = useConfigStore()
+  const [qcJson, setQcJson] = useState('')
+  const [qcMsg, setQcMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    window.electronAPI.configGet().then((raw) => {
+      const c = raw as { quickCommands?: unknown }
+      const cmds = parseQuickCommands(c.quickCommands) ?? DEFAULT_QUICK_COMMANDS
+      setQcJson(JSON.stringify(cmds, null, 2))
+    }).catch(() => {
+      setQcJson(JSON.stringify(DEFAULT_QUICK_COMMANDS, null, 2))
+    })
+  }, [])
+
+  async function saveQuickCommands() {
+    setQcMsg(null)
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(qcJson)
+    } catch {
+      setQcMsg('Неверный JSON')
+      return
+    }
+    const cmds = parseQuickCommands(parsed)
+    if (!cmds) {
+      setQcMsg('Нужен непустой массив команд с полями id, label, category, cmd, icon')
+      return
+    }
+    try {
+      const full = (await window.electronAPI.configGet()) as Record<string, unknown>
+      await window.electronAPI.configSet({ ...full, quickCommands: cmds })
+      notifyQuickCommandsUpdated()
+      setQcMsg('Сохранено')
+      setTimeout(() => setQcMsg(null), 2500)
+    } catch {
+      setQcMsg('Не удалось сохранить')
+    }
+  }
 
   // Keep a ref to the latest onClose so the listener never accumulates
   // (single listener registered once on mount, always calls the current callback)
@@ -169,6 +209,43 @@ export default function Settings({ onClose }: Props) {
               />
               Open files read-only by default
             </label>
+          </section>
+
+          {/* Quick commands — stored in ~/.config/claude-terminal/config.json */}
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>Quick commands</h3>
+            <p style={{ margin: '0 0 8px', fontSize: 12, color: '#7e82a8' }}>
+              JSON-массив; поле <code style={{ color: '#c9cfe0' }}>category</code>: session | code | git | arch
+            </p>
+            <textarea
+              className={styles.select}
+              style={{ width: '100%', minHeight: 200, fontFamily: 'ui-monospace, monospace', fontSize: 11, resize: 'vertical', boxSizing: 'border-box' }}
+              value={qcJson}
+              onChange={e => setQcJson(e.target.value)}
+              spellCheck={false}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={styles.select}
+                style={{ cursor: 'pointer', padding: '6px 12px' }}
+                onClick={saveQuickCommands}
+              >
+                Save quick commands
+              </button>
+              <button
+                type="button"
+                className={styles.select}
+                style={{ cursor: 'pointer', padding: '6px 12px' }}
+                onClick={() => {
+                  setQcJson(JSON.stringify(DEFAULT_QUICK_COMMANDS, null, 2))
+                  setQcMsg(null)
+                }}
+              >
+                Reset to defaults
+              </button>
+              {qcMsg && <span style={{ fontSize: 12, color: qcMsg === 'Сохранено' ? '#22c55e' : '#f87171' }}>{qcMsg}</span>}
+            </div>
           </section>
 
           {/* Preview */}

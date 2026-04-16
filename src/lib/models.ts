@@ -66,6 +66,15 @@ export interface SessionCost {
   updatedAt: string; // ISO timestamp
 }
 
+// Quick command (toolbar + ~/.config/claude-terminal/config.json → quickCommands)
+export interface QuickCommand {
+  id: string;
+  label: string;
+  category: 'session' | 'code' | 'git' | 'arch';
+  cmd: string;
+  icon: string;
+}
+
 // App config (persisted to ~/.config/claude-terminal/config.json)
 export interface AppConfig {
   version: string;
@@ -88,15 +97,8 @@ export interface AppConfig {
     checkOnLaunch: boolean;
     channel: 'stable' | 'beta';
   };
-}
-
-// Quick command
-export interface QuickCommand {
-  id: string;
-  label: string;
-  category: 'session' | 'code' | 'git' | 'arch';
-  cmd: string;
-  icon: string;
+  /** Custom quick commands; when missing, built-ins from `defaultQuickCommands` apply. */
+  quickCommands?: QuickCommand[];
 }
 
 // Memory file (CLAUDE.md etc)

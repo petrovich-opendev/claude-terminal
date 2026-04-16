@@ -36,6 +36,27 @@ export function registerSshHandlers(ipcMain: IpcMain): void {
     return { ok: true }
   })
   ipcMain.handle('ssh:delete', async (_e, id: string) => { writeSessions(readSessions().filter((s:{id:string})=>s.id!==id)); return {ok:true} })
+  /** Persist session order (same group drag-reorder updates flat list order in sessions.json). */
+  ipcMain.handle('ssh:save-order', async (_e, orderedIds: unknown) => {
+    if (!Array.isArray(orderedIds) || orderedIds.length > 4096) throw new Error('Invalid order payload')
+    const ids = orderedIds.filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length < 128)
+    const all = readSessions() as { id: string }[]
+    const byId = new Map(all.map((s) => [s.id, s]))
+    const ordered: unknown[] = []
+    const seen = new Set<string>()
+    for (const id of ids) {
+      const row = byId.get(id)
+      if (row) {
+        ordered.push(row)
+        seen.add(id)
+      }
+    }
+    for (const s of all) {
+      if (!seen.has(s.id)) ordered.push(s)
+    }
+    writeSessions(ordered)
+    return { ok: true }
+  })
   ipcMain.handle('ssh:disconnect', async () => ({ok:true}))
   ipcMain.handle('ssh:connect', async () => ({ok:true}))
   ipcMain.handle('ssh:import-config', async () => {

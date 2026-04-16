@@ -8,17 +8,29 @@ const IGNORE = new Set(['.git', 'node_modules', '__pycache__', 'dist', 'dist-ele
 const HOME = os.homedir()
 
 /**
+ * Canonicalize an existing path without hanging on broken symlink graphs.
+ * Node usually throws ELOOP quickly; on any failure we fall back to `resolved`.
+ */
+function realpathSafe(resolved: string): string {
+  if (!fs.existsSync(resolved)) return resolved
+  try {
+    return fs.realpathSync(resolved)
+  } catch {
+    return resolved
+  }
+}
+
+/**
  * Resolve and validate a file path.
  * - Expands ~ to $HOME
- * - Resolves to absolute via fs.realpathSync (canonical)
+ * - Resolves to absolute via realpathSafe (canonical when possible)
  * - Rejects paths outside $HOME to prevent path traversal (e.g. /etc/shadow)
  */
 function safe(p: string): string {
   if (typeof p !== 'string' || !p.trim()) throw new Error('Path must be a non-empty string')
   const expanded = p.replace(/^~(?=$|\/)/, HOME)
   const resolved = path.resolve(expanded)
-  // Use canonical path to defeat symlink traversal
-  const canonical = fs.existsSync(resolved) ? fs.realpathSync(resolved) : resolved
+  const canonical = realpathSafe(resolved)
   if (!canonical.startsWith(HOME + '/') && canonical !== HOME) {
     throw new Error('Access denied: path outside home directory')
   }

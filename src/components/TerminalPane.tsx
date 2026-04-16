@@ -7,6 +7,7 @@ import '@xterm/xterm/css/xterm.css'
 import { useTabsStore } from '@/store/tabs'
 import { useConfigStore } from '@/store/config'
 import { useTerminalStore } from '@/store/terminal'
+import { accumulatePixelsToScrollLineDelta, wheelEventPixelDelta, type WheelPixelAccum } from '@/lib/wheelXtermScroll'
 
 interface Props {
   tabId: string
@@ -54,6 +55,8 @@ export default function TerminalPane({ tabId, visible }: Props) {
       rightClickSelectsWord: true,
       scrollback: 10000,
       cursorBlink: true,
+      scrollSensitivity: 1,
+      smoothScrollDuration: 0,
     })
 
     const fit = new FitAddon()
@@ -67,40 +70,32 @@ export default function TerminalPane({ tabId, visible }: Props) {
     fitRef.current    = fit
     searchRef.current = search
 
-    // B-11: Intercept wheel events — scroll terminal buffer, never forward to PTY.
-    // Without capture:true, xterm-viewport handles the event first and sends
-    // ESC[A/B to the shell (bash interprets as history navigation).
-    //
-    // term.scrollLines() does not reliably trigger a visual re-render in Electron
-    // on macOS. The correct approach is to manipulate .xterm-viewport scrollTop
-    // directly — xterm listens to its own 'scroll' event and updates ydisp +
-    // re-renders the canvas automatically.
-    //
-    // Track whether user has scrolled away from bottom (used by onPtyData)
+    // Track whether user has scrolled away from bottom (used by onPtyData).
     let userScrolledUp = false
+    const scrollSub = term.onScroll(() => {
+      const b = term.buffer.active
+      userScrolledUp = b.viewportY < b.baseY
+    })
 
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
+    // xterm.js wheel path (Terminal.ts): if `!buffer.hasScrollback`, wheel becomes ESC[A/B
+    // → shell history. A parent `capture` listener is unreliable in Electron — the event
+    // can still hit xterm's listener on `term.element`. Use the official hook that runs
+    // *before* that branch: attachCustomWheelEventHandler returns `false` to skip xterm's
+    // wheel handling entirely; we then scroll via the public `scrollLines()` API (correct
+    // ydisp + render). Alternate buffer: return `true` so vim/less keep default behavior.
+    const wheelAccum: WheelPixelAccum = { px: 0 }
+    term.attachCustomWheelEventHandler(ev => {
+      if (ev.shiftKey) return true
+      if (term.buffer.active.type !== 'normal') return true
 
-      const viewport = container?.querySelector('.xterm-viewport') as HTMLElement | null
-      if (!viewport) return
-
-      // macOS trackpad: deltaMode=0 (pixels) — use deltaY directly.
-      // Physical mouse wheel: deltaMode=1 (lines) — scale to pixels.
-      // Page mode: deltaMode=2 — scale to full viewport height.
-      const pixelDelta = e.deltaMode === 1 ? e.deltaY * fontSize * lineHeight
-                       : e.deltaMode === 2 ? e.deltaY * viewport.clientHeight
-                       : e.deltaY
-
-      viewport.scrollTop += pixelDelta
-
-      // Update scroll-away flag after DOM has settled
-      const atBottom = viewport.scrollTop >= viewport.scrollHeight - viewport.clientHeight - 2
-      userScrolledUp = !atBottom
-    }
-
-    container.addEventListener('wheel', onWheel, { passive: false, capture: true })
+      ev.preventDefault()
+      const cell = Math.max(1, (term.options.fontSize ?? fontSize) * (term.options.lineHeight ?? lineHeight))
+      const sens = term.options.scrollSensitivity ?? 1
+      const px = wheelEventPixelDelta(ev, cell, term.rows, sens)
+      const disp = accumulatePixelsToScrollLineDelta(wheelAccum, px, cell)
+      if (disp !== 0) term.scrollLines(disp)
+      return false
+    })
 
     // Click on terminal → focus xterm so mouse selection and keyboard input work.
     const onPointerDown = () => term.focus()
@@ -189,7 +184,7 @@ export default function TerminalPane({ tabId, visible }: Props) {
 
     return () => {
       alive = false
-      container?.removeEventListener('wheel', onWheel, { capture: true })
+      scrollSub.dispose()
       container?.removeEventListener('pointerdown', onPointerDown)
       ro.disconnect()
       cleanupPty.then(off => off?.())
@@ -256,7 +251,7 @@ export default function TerminalPane({ tabId, visible }: Props) {
     >
       <div
         ref={containerRef}
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', touchAction: 'pan-y' }}
       />
       {/* Search overlay — Cmd+F (U-1) */}
       {searchOpen && (

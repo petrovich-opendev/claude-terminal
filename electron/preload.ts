@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sshList: () => ipcRenderer.invoke('ssh:list'),
   sshSave: (session: unknown) => ipcRenderer.invoke('ssh:save', session),
   sshDelete: (id: string) => ipcRenderer.invoke('ssh:delete', id),
+  sshSaveOrder: (ids: string[]) => ipcRenderer.invoke('ssh:save-order', ids),
   sshImportConfig: () => ipcRenderer.invoke('ssh:import-config'),
   // Keychain
   keychainSet: (account: string, password: string) => ipcRenderer.invoke('keychain:set', account, password),

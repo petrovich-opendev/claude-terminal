@@ -1,27 +1,10 @@
+import { useEffect, useState } from 'react'
 import { useActivePtyId } from '@/store/tabs'
 import type { QuickCommand } from '@/lib/models'
+import { DEFAULT_QUICK_COMMANDS } from '@/lib/defaultQuickCommands'
+import { parseQuickCommands } from '@/lib/parseQuickCommands'
+import { QUICK_COMMANDS_UPDATED } from '@/lib/quickCommandsEvents'
 import styles from './QuickCommands.module.css'
-
-const COMMANDS: QuickCommand[] = [
-  // session
-  { id: 'start',    label: 'Start',    category: 'session', cmd: 'claude',              icon: '▶' },
-  { id: 'continue', label: 'Continue', category: 'session', cmd: 'claude --continue',   icon: '↺' },
-  { id: 'resume',   label: 'Resume',   category: 'session', cmd: 'claude --resume',     icon: '⏯' },
-  { id: 'cost',     label: 'Cost',     category: 'session', cmd: '/cost',               icon: '$' },
-  { id: 'compact',  label: 'Compact',  category: 'session', cmd: '/compact',            icon: '⊡' },
-  // code
-  { id: 'review',   label: 'Review',   category: 'code',    cmd: 'claude "Review this code for quality, bugs, and best practices"',    icon: '◉' },
-  { id: 'fix',      label: 'Fix',      category: 'code',    cmd: 'claude "Fix the bug or issue in this code"',                         icon: '⚡' },
-  { id: 'tests',    label: 'Tests',    category: 'code',    cmd: 'claude "Write comprehensive tests for this code"',                   icon: '✓' },
-  { id: 'refactor', label: 'Refactor', category: 'code',    cmd: 'claude "Refactor this code for clarity and maintainability"',        icon: '↻' },
-  { id: 'explain',  label: 'Explain',  category: 'code',    cmd: 'claude "Explain what this code does and how it works"',              icon: '?' },
-  // git
-  { id: 'pr',       label: 'PR',       category: 'git',     cmd: 'claude "Create a pull request for these changes"',                  icon: '⇡' },
-  { id: 'commit',   label: 'Commit',   category: 'git',     cmd: 'claude "Commit these changes with a descriptive commit message"',   icon: '●' },
-  // arch
-  { id: 'design',   label: 'Design',   category: 'arch',    cmd: 'claude "Design the architecture for this feature"',                 icon: '◇' },
-  { id: 'adr',      label: 'ADR',      category: 'arch',    cmd: 'claude "Write an Architecture Decision Record for this decision"',  icon: '▣' },
-]
 
 const CATEGORY_LABELS: Record<QuickCommand['category'], string> = {
   session: 'Session',
@@ -41,6 +24,20 @@ const CATEGORIES: QuickCommand['category'][] = ['session', 'code', 'git', 'arch'
 
 export default function QuickCommands() {
   const ptyId = useActivePtyId()
+  const [commands, setCommands] = useState<QuickCommand[]>(DEFAULT_QUICK_COMMANDS)
+
+  useEffect(() => {
+    function load() {
+      window.electronAPI.configGet().then((raw) => {
+        const cfg = raw as { quickCommands?: unknown }
+        const parsed = cfg.quickCommands !== undefined ? parseQuickCommands(cfg.quickCommands) : null
+        setCommands(parsed ?? DEFAULT_QUICK_COMMANDS)
+      }).catch(() => { setCommands(DEFAULT_QUICK_COMMANDS) })
+    }
+    load()
+    window.addEventListener(QUICK_COMMANDS_UPDATED, load)
+    return () => window.removeEventListener(QUICK_COMMANDS_UPDATED, load)
+  }, [])
 
   const send = (cmd: string) => {
     if (!ptyId) return
@@ -51,7 +48,7 @@ export default function QuickCommands() {
     <div data-testid="quickcmds" className={styles.bar}>
       <div className={styles.inner}>
         {CATEGORIES.map((cat) => {
-          const cmds = COMMANDS.filter((c) => c.category === cat)
+          const cmds = commands.filter((c) => c.category === cat)
           return (
             <div key={cat} className={styles.group}>
               <span

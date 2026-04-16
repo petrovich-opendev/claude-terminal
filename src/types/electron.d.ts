@@ -12,6 +12,7 @@ declare global {
       sshList():Promise<unknown[]>
       sshSave(s:unknown):Promise<{ok:boolean}>
       sshDelete(id:string):Promise<{ok:boolean}>
+      sshSaveOrder(ids:string[]):Promise<{ok:boolean}>
       sshImportConfig():Promise<unknown[]>
       keychainSet(account:string,password:string):Promise<{ok:boolean}>
       keychainGet(account:string):Promise<string|null>

@@ -46,7 +46,7 @@ function StatusDot({ status }: { status: SSHSession['status'] }) {
 interface SshCtxMenu { x: number; y: number; session: SSHSession }
 
 export default function SSHPanel() {
-  const { sessions, addSession, updateSession, removeSession, setActive } = useSessionsStore()
+  const { sessions, addSession, updateSession, removeSession, setActive, reorderInGroup } = useSessionsStore()
   const updateTab = useTabsStore(s => s.updateTab)
   const addTab    = useTabsStore(s => s.addTab)
   const [useTmux, setUseTmux] = useState(true)
@@ -250,7 +250,26 @@ export default function SSHPanel() {
                     onMouseEnter={() => setHoverId(s.id)}
                     onMouseLeave={() => setHoverId(null)}
                     onContextMenu={(e) => { e.preventDefault(); setSshCtxMenu({ x: e.clientX, y: e.clientY, session: s }) }}
+                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      const fromId = e.dataTransfer.getData('text/plain')
+                      if (!fromId || fromId === s.id) return
+                      reorderInGroup(fromId, s.id)
+                      const ids = useSessionsStore.getState().sessions.map((x) => x.id)
+                      void window.electronAPI.sshSaveOrder(ids).catch(() => {})
+                    }}
                   >
+                    <span
+                      className={styles.dragHandle}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', s.id)
+                        e.dataTransfer.effectAllowed = 'move'
+                      }}
+                      onClick={(ev) => ev.stopPropagation()}
+                      title="Перетащите для порядка в группе"
+                    >⋮⋮</span>
                     <StatusDot status={s.status} />
                     <div className={styles.sessionInfo}>
                       <span className={styles.sessionName}>{s.name}</span>
@@ -267,17 +286,17 @@ export default function SSHPanel() {
                       <div className={styles.actions}>
                         <button
                           className={`${styles.actionBtn} ${styles.actionConnect}`}
-                          onClick={() => handleConnect(s)}
+                          onClick={(ev) => { ev.stopPropagation(); handleConnect(s) }}
                           title="Connect"
                         >⚡</button>
                         <button
                           className={`${styles.actionBtn} ${styles.actionEdit}`}
-                          onClick={() => openEdit(s)}
+                          onClick={(ev) => { ev.stopPropagation(); openEdit(s) }}
                           title="Edit"
                         >✎</button>
                         <button
                           className={`${styles.actionBtn} ${styles.actionDelete}`}
-                          onClick={() => handleDelete(s)}
+                          onClick={(ev) => { ev.stopPropagation(); handleDelete(s) }}
                           title="Delete"
                         >✕</button>
                       </div>

@@ -48,8 +48,8 @@
 | U-9 | MemoryPanel | `sidebar/MemoryPanel.tsx` | — | **Отсутствуют кнопки "Edit global memory", "Edit project memory", "New custom command"** — SPEC 5.4 | FIXED |
 | U-10 | StatusBar | `StatusBar.tsx` | — | **Нет баннера "⚠ Compact recommended"** — должен появляться при context > 70% или cost > $0.50 | FIXED |
 | U-11 | SSHPanel | `sidebar/SSHPanel.tsx` | — | **Right-click context menu отсутствует** — есть только hover-кнопки, SPEC требует контекстное меню | FIXED |
-| U-12 | SSHPanel | `sidebar/SSHPanel.tsx` | — | **Drag-to-reorder внутри группы не реализован** | OPEN |
-| U-13 | QuickCommands | `QuickCommands.tsx` | — | **Нет customization** — add/edit/delete команд, хранение в `quick-commands.json` | OPEN |
+| U-12 | SSHPanel | `sidebar/SSHPanel.tsx` | — | **Drag-to-reorder внутри группы не реализован** | FIXED — ручка ⋮⋮, `ssh:save-order` |
+| U-13 | QuickCommands | `QuickCommands.tsx` | — | **Нет customization** — add/edit/delete команд, хранение в `quick-commands.json` | FIXED — JSON в Settings + `config.json` → `quickCommands` |
 | U-14 | Settings | `Settings.tsx` | — | **Отсутствуют поля**: scrollback, defaultMode, obsidianPort, editor.readOnlyDefault, editor.wordWrap, updates.checkOnLaunch, updates.channel | FIXED (scrollback, obsidianPort, wordWrap, readOnlyDefault) |
 | U-15 | TitleBar | `TitleBar.tsx` | 32-34 | Нет статуса активной сессии (connected/idle/error) рядом с именем | FIXED |
 | U-16 | Theme | `styles/theme.css` | 30 | `--ui` font — отсутствует `'Rajdhani'` как primary (дизайн-прототип) | FIXED |
@@ -64,7 +64,7 @@
 | T-1 | `TerminalPane.tsx:96-98` | `term.onData` регистрируется после spawn — возможна потеря первых байт при быстром вводе | FIXED |
 | T-2 | `TerminalPane.tsx:87` | `term.buffer.active` может быть null при очень быстрых resize | FIXED |
 | T-3 | `electron/ipc/sftp.ts:28` | authType=key без keyPath даёт неясную ошибку SSH вместо "Key path not set" | FIXED |
-| T-4 | `electron/ipc/fs.ts:21` | `fs.realpathSync` может зависнуть на циклических симлинках | OPEN |
+| T-4 | `electron/ipc/fs.ts:21` | `fs.realpathSync` может зависнуть на циклических симлинках | FIXED — `realpathSafe` (try/catch, fallback) |
 | T-5 | `electron/ipc/pty.ts:39` | `validateCmd` не вызывается для `/bin/zsh` — путь проходит без валидации | FIXED |
 
 ---

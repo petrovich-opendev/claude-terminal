@@ -10,6 +10,7 @@ dist/
 
 # Build artifacts
 src-tauri/gen/
+release/
 *.dmg
 *.app
 
