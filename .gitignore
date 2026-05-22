@@ -41,3 +41,9 @@ logs/
 
 # GitHub Actions (requires workflow PAT scope to push)
 dist-electron/
+
+# Local-only state
+.claude/
+release/
+*.tsbuildinfo
+index-*.js
